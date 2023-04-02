@@ -1,0 +1,9 @@
+torch
+transformers
+multiple-hypothesis-testing
+tqdm
+pandas
+datasets
+spacy['en_core_web_sm']
+
+
