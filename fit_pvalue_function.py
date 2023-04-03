@@ -1,7 +1,6 @@
 """
 Script to read log-perplexity data of many sentences and characterize the empirical distribution.
 We also report the mean log-perplexity as a function of sentence length
-
 """
 
 import pandas as pd

@@ -41,7 +41,7 @@ class DetectLM(object):
         """
         Returns:
           response:  sentence log-perplexity
-          pvalue:
+          pval:      P-value of atomic log-perplexity test
         """
         length = len(sent.split())  # This is the approximate. The precise length is determined by the tokenizer
         if self.min_len <= length:
@@ -83,29 +83,26 @@ class DetectLM(object):
         mt = MultiTest(pvals)
         return dict(zip(['Fn', 'pvalue'], mt.fisher()))
 
-    def test_chunked_doc(self, lo_chunks: [str], lo_contexts: [str]) -> pd.DataFrame:
 
+    def _test_chunked_doc(self, lo_chunks: [str], lo_contexts: [str]) -> MultiTest:
         pvals, responses = self.get_pvals(lo_chunks, lo_contexts)
         df = pd.DataFrame({'sentence': lo_chunks, 'response': responses, 'pvalue': pvals,
                            'context': lo_contexts},
                           index=range(len(lo_chunks)))
-        mt = MultiTest(df[~df.pvalue.isna()].pvalue)
+        return MultiTest(df[~df.pvalue.isna()].pvalue)
+
+    def test_chunked_doc(self, lo_chunks: [str], lo_contexts: [str]) -> pd.DataFrame:
+        mt = self._test_chunked_doc(lo_chunks, lo_contexts)
         hc, hct = mt.hc()
         fisher = mt.fisher()
         df['mask'] = df['pvalue'] <= hct
         return dict(sentences=df, HC=hc, fisher=fisher[0], fisher_pvalue=fisher[1])
 
+    def test_chunked_doc_hc_dashboard(self, lo_chunks: [str], lo_contexts: [str]) -> pd.DataFrame:
+        mt = self._test_chunked_doc(lo_chunks, lo_contexts)
+        hc_rep = mt.hc_dashboard()
+        return hc_rep
+
     def __call__(self, lo_chunks: [str], lo_contexts: [str]) -> pd.DataFrame:
         return self.test_chunked_doc(lo_chunks, lo_contexts)
 
-    def test_chunked_doc_full_report(self, lo_chunks: [str], lo_contexts: [str]) -> pd.DataFrame:
-        pvals, responses = self.get_pvals(lo_chunks, lo_contexts)
-        df = pd.DataFrame({'sentence': lo_chunks, 'response': responses, 'pvalue': pvals,
-                           'context': lo_contexts},
-                          index=range(len(lo_chunks)))
-        mt = MultiTest(df[~df.pvalue.isna()].pvalue)
-        hc, hct = mt.hc()
-        hc_rep = mt.hc_dashboard()
-        fisher = mt.fisher()
-        df['mask'] = df['pvalue'] <= hct
-        return dict(sentences=df, HC=hc, HC_dashboard=hc_rep, fisher=fisher[0], fisher_pvalue=fisher[1])

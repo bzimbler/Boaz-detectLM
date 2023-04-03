@@ -1,69 +1,97 @@
+"""
+Apply the atomic chunk detector many times.
+This is useful for:
+ 1. Characterizing the null distribution of a model with a specific context policy.
+ 2. Characterizing the power of the global detector against a mixtures from a specific domain.
+
+"""
+
 import torch
 import pandas as pd
+from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from scipy.interpolate import interp1d
 import logging
-import numpy as np
-import spacy
 import argparse
-from DetectLM import DetectLM
 from PerplexityEvaluator import PerplexityEvaluator
 from PrepareSentenceContext import PrepareSentenceContext
+from datasets import load_dataset
 from glob import glob
 
 logging.basicConfig(level=logging.INFO)
 
 
-def read_all_csv_files(pattern):
-    df = pd.DataFrame()
-    for f in glob(pattern):
-        df = pd.concat([df, pd.read_csv(f)])
-    return df
+def process_text(text, atomic_detector, parser):
+    chunks = parser(text)
+
+    ids = []
+    lengths = []
+    responses = []
+    context_lengths = []
+    chunk_num = 0
+    for chunk, context, length in zip(chunks['text'], chunks['context'], chunks['length']):
+        chunk_num += 1
+        res = atomic_detector(chunk, context)
+        ids.append(chunk_num)
+        lengths.append(length)
+        responses.append(res)
+        if context:
+            context_lengths.append(len(context.split()))
+        else:
+            context_lengths.append(0)
+
+    return dict(chunk_ids=ids, responses=responses, lengths=lengths, context_lengths=context_lengths)
 
 
-def fit_pval_func(xx, G=501):
-    qq = np.linspace(0, 1, G)
-    yy = [np.quantile(xx, q) for q in qq]
-    return interp1d(yy, 1 - qq, fill_value=(1, 0), bounds_error=False)
 
 
-def get_pval_func_dict(df, min_len=0, max_len=100):
-    """
-    One pvalue function for every length in the range(min_len, max_len)
+def iterate_over_texts(texts, atomic_detector, parser, output_file="out.csv"):
+    ids = []
+    lengths = []
+    responses = []
+    context_lengths = []
+    names = []
+    for name, text in tqdm(texts):
+        r = process_text(text, atomic_detector, parser)
+        ids += r['chunk_ids']
+        responses += r['responses']
+        lengths += r['lengths']
+        context_lengths += r['context_lengths']
+        names += [name] * len(r['chunk_ids'])
 
-    :param df:  data frame with columns 'logloss' and 'length'
-    :param min_len:  optional cutoff value
-    :param max_len:  optional cutoff value
-    :return:
-    """
-    pval_func_list = [(c[0], fit_pval_func(c[1]['logloss']))
-                      for c in df.groupby('length') if min_len <= c[0] <= max_len]
-    return dict(pval_func_list)
+        df = pd.DataFrame({'num': ids, 'length': lengths,
+                           'response': responses, 'context_length': context_lengths,
+                           'name': names})
+        logging.info(f"Saving results to {output_file}")
+        df.to_csv(output_file)
 
 
-logging.debug("Loading Spacy...")
-nlp = spacy.load("en_core_web_sm")
+def get_text_data_from_files(path, extension='*.txt'):
+    logging.info(f"Reading text data from {path}...")
+    lo_fns = glob(path + extension)
+    for fn in lo_fns:
+        with open(fn, "rt") as f:
+            yield fn, f.read()
 
-def break_text(text):
-    return [str(s) for s in nlp(text).sents]
+
+def get_text_from_wiki_dataset():
+    dataset = load_dataset("aadityaubhat/GPT-wiki-intro")
+    for d in tqdm(dataset['train']):
+        text = d['prompt'] + d['generated_text']
+        name = d['title']
+        yield name, text
 
 def main():
     parser = argparse.ArgumentParser(description='Apply atomic detector many times to characterize distribution')
-    parser.add_argument('-i', type=str, help='data file', default="Data/")
+    parser.add_argument('-i', type=str, help='data file', default="")
     parser.add_argument('--context', action='store_true')
-
     args = parser.parse_args()
 
-    pattern = args.null
-    logging.info(f"Reading null data from {pattern} and fitting survival function")
-    df_null = read_all_csv_files(pattern)
-    pval_functions = get_pval_func_dict(df_null)
-
-    max_len = np.max(list(pval_functions.keys()))
-
-    logging.info(f"Loading model and detection function...")
-
     lm_name = "gpt2"
+    if args.context:
+        context_policy = 'previous_sentence'
+    else:
+        context_policy = None
+
     logging.debug(f"Loading Language model {lm_name}...")
     tokenizer = AutoTokenizer.from_pretrained(lm_name)
     model = AutoModelForCausalLM.from_pretrained(lm_name)
@@ -71,25 +99,17 @@ def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     model.to(device)
 
+    if args.i == "":
+        logging.info("Processing wiki dataset...")
+        texts = get_text_from_wiki_dataset()
+    else:
+        texts = get_text_data_from_files(args.i, extension='*.txt')
+
+    logging.info(f"Iterating over texts...")
     sentence_detector = PerplexityEvaluator(model, tokenizer)
-    logging.debug("Initializing detector...")
-    detector = DetectLM(sentence_detector, pval_functions, context_policy=None,
-                            max_len=max_len, length_limit_policy='truncate')
+    parser = PrepareSentenceContext(context_policy=context_policy)
 
-    input_file = args.i
-    logging.info(f"Parsing text from {input_file}...")
-    with open(input_file, 'rt') as f:
-        text = f.read()
-
-    parse_chunks = PrepareSentenceContext(context_policy='previous_sentence')
-    chunks = parse_chunks(text)
-
-    logging.info("Testing parsed document")
-    res = detector(chunks['text'], chunks['context']) # ignore title
-
-    print(res['sentences'])
-    print(f"HC = {res['HC']}")
-    print(f"Fisher (pvalue) = {res['fisher_pvalue']}")
+    iterate_over_texts(texts, sentence_detector, parser, output_file=f"{lm_name}_{context_policy}.csv")
 
 
 if __name__ == '__main__':
