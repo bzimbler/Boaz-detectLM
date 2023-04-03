@@ -1,11 +1,12 @@
 .ipynb_checkpoints*
 .ipynb_checkpoints/*
-__pycache__
+*.png
+.idea
+*.pyc
+__pycache__*
 Data/*
 results/*
 *.csv
 Figs/*
 env/*
 env
-*.png
-.idea
