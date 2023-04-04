@@ -57,14 +57,14 @@ have smaller perplexity.
 
 ## Scripts
 - ``test_sentence_detector.py``. Computes the log perplexity of an input text.
-- ``many_atomic_detections.py``. Evaluate the log perplexity of many sentences give a specific policy. This script can 
+- ``many_atomic_detections.py``. Evaluate the log perplexity of many sentences given a specific policy. This script can 
 be useful to characterize P-value function or to analyze the power of the pipeline against a mixture from a specific 
 domain.
 - ``test_text_detect.py``. Apply the full testing pipeline to an input text file. This scripts loads "null data" and fit 
 a function to evaluate P-values. To obtain reliable detection, the null data must be obtained under the same context
 policy of the test. 
 - ``fit_pvalue_function.py``. Report on the histogram of simulated null log-perplexities and the dependency of the 
-- log-perplexity in the sentence's length. 
+log-perplexity in the sentence's length. 
 
 ## Example
 ``
