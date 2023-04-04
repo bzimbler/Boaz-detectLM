@@ -12,8 +12,8 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import logging
 import argparse
-from PerplexityEvaluator import PerplexityEvaluator
-from PrepareSentenceContext import PrepareSentenceContext
+from src.PerplexityEvaluator import PerplexityEvaluator
+from src.PrepareSentenceContext import PrepareSentenceContext
 from datasets import load_dataset
 from glob import glob
 
@@ -80,6 +80,15 @@ def get_text_from_wiki_dataset():
         name = d['title']
         yield name, text
 
+
+def get_text_from_wikibio_dataset():
+    dataset = load_dataset("potsawee/wiki_bio_gpt3_hallucination")
+    #features: ['gpt3_text', 'wiki_bio_text', 'gpt3_sentences', 'annotation', 'wiki_bio_test_idx'],
+    for d in tqdm(dataset['train']):
+        text = d['gpt3_text']
+        name = d['wiki_bio_test_idx']
+        yield name, text
+
 def main():
     parser = argparse.ArgumentParser(description='Apply atomic detector many times to characterize distribution')
     parser.add_argument('-i', type=str, help='data file', default="")
@@ -90,7 +99,7 @@ def main():
     if args.context:
         context_policy = 'previous_sentence'
     else:
-        context_policy = None
+        context_policy = 'no_context'
 
     logging.debug(f"Loading Language model {lm_name}...")
     tokenizer = AutoTokenizer.from_pretrained(lm_name)
@@ -99,9 +108,14 @@ def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     model.to(device)
 
-    if args.i == "":
+    dataset_name = args.i
+
+    if args.i == "wiki":
         logging.info("Processing wiki dataset...")
         texts = get_text_from_wiki_dataset()
+    elif args.i == "wikibio":
+        logging.info("Processing wiki bio dataset...")
+        texts = get_text_from_wikibio_dataset()
     else:
         texts = get_text_data_from_files(args.i, extension='*.txt')
 
@@ -109,7 +123,9 @@ def main():
     sentence_detector = PerplexityEvaluator(model, tokenizer)
     parser = PrepareSentenceContext(context_policy=context_policy)
 
-    iterate_over_texts(texts, sentence_detector, parser, output_file=f"{lm_name}_{context_policy}.csv")
+    out_filename = f"{lm_name}_{context_policy}_{dataset_name}.csv"
+    print(f"Saving results to {out_filename}")
+    iterate_over_texts(texts, sentence_detector, parser, output_file=out_filename)
 
 
 if __name__ == '__main__':

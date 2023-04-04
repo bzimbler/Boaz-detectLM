@@ -7,10 +7,6 @@ import logging
 import spacy
 
 
-def break_text(text):
-    return [str(s) for s in nlp(text).sents]
-
-
 class PrepareSentenceContext(object):
     """
     Parse text and extract length and context information
@@ -49,6 +45,8 @@ class PrepareSentenceContext(object):
             elif self.context_policy == 'previous_sentence':
                 context = previous
                 previous = text
+            else:
+                context = None
 
             contexts.append(context)
         return {'text': texts, 'length': lengths, 'context': contexts}

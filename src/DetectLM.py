@@ -2,14 +2,17 @@ import numpy as np
 import pandas as pd
 from multitest import MultiTest
 from tqdm import tqdm
+import logging
+
 
 def truncae_to_max_no_tokens(text, max_no_tokens):
     return " ".join(text.split()[:max_no_tokens])
 
+
 class DetectLM(object):
     def __init__(self, sentence_detection_function, survival_function_dict,
                  context_policy: str = None, min_len=5, max_len=60,
-                 length_limit_policy='truncate'):
+                 length_limit_policy='truncate', ignore_first_sentence=True):
         """
         Test for the presence of sentences of irregular origin as reflected by the
         sentence_detection_function. This function can be assisted by a context, which we
@@ -33,6 +36,7 @@ class DetectLM(object):
         self.max_len = max_len
         self.context_policy = context_policy
         self.length_limit_policy = length_limit_policy
+        self.ignore_first_sentence = ignore_first_sentence
 
     def _logperp(self, sent: str, context=None) -> float:
         return float(self.sentence_detector(sent, context))
@@ -43,7 +47,7 @@ class DetectLM(object):
           response:  sentence log-perplexity
           pval:      P-value of atomic log-perplexity test
         """
-        length = len(sent.split())  # This is the approximate. The precise length is determined by the tokenizer
+        length = len(sent.split())  # This is the approximate length as the true length is determined by the tokenizer
         if self.min_len <= length:
             if length > self.max_len:  # in case length exceeds specifications...
                 if self.length_limit_policy == 'truncate':
@@ -83,26 +87,28 @@ class DetectLM(object):
         mt = MultiTest(pvals)
         return dict(zip(['Fn', 'pvalue'], mt.fisher()))
 
-
-    def _test_chunked_doc(self, lo_chunks: [str], lo_contexts: [str]) -> MultiTest:
+    def _test_chunked_doc(self, lo_chunks: [str], lo_contexts: [str]) -> (MultiTest, pd.DataFrame):
         pvals, responses = self.get_pvals(lo_chunks, lo_contexts)
+        if self.ignore_first_sentence:
+            pvals[0] = np.nan
+            logging.info('Ignoring the first sentence in the document.')
         df = pd.DataFrame({'sentence': lo_chunks, 'response': responses, 'pvalue': pvals,
                            'context': lo_contexts},
                           index=range(len(lo_chunks)))
-        return MultiTest(df[~df.pvalue.isna()].pvalue)
+        return MultiTest(df[~df.pvalue.isna()].pvalue), df
 
-    def test_chunked_doc(self, lo_chunks: [str], lo_contexts: [str]) -> pd.DataFrame:
-        mt = self._test_chunked_doc(lo_chunks, lo_contexts)
+    def test_chunked_doc(self, lo_chunks: [str], lo_contexts: [str]) -> dict:
+        mt, df = self._test_chunked_doc(lo_chunks, lo_contexts)
         hc, hct = mt.hc()
         fisher = mt.fisher()
+
         df['mask'] = df['pvalue'] <= hct
         return dict(sentences=df, HC=hc, fisher=fisher[0], fisher_pvalue=fisher[1])
 
     def test_chunked_doc_hc_dashboard(self, lo_chunks: [str], lo_contexts: [str]) -> pd.DataFrame:
-        mt = self._test_chunked_doc(lo_chunks, lo_contexts)
+        mt, df = self._test_chunked_doc(lo_chunks, lo_contexts)
         hc_rep = mt.hc_dashboard()
         return hc_rep
 
     def __call__(self, lo_chunks: [str], lo_contexts: [str]) -> pd.DataFrame:
         return self.test_chunked_doc(lo_chunks, lo_contexts)
-

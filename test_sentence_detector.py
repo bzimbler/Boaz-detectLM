@@ -6,7 +6,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import logging
 import argparse
-from PerplexityEvaluator import PerplexityEvaluator
+from src.PerplexityEvaluator import PerplexityEvaluator
 
 
 logging.basicConfig(level=logging.INFO)

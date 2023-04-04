@@ -5,9 +5,9 @@ from scipy.interpolate import interp1d
 import logging
 import numpy as np
 import argparse
-from DetectLM import DetectLM
-from PerplexityEvaluator import PerplexityEvaluator
-from PrepareSentenceContext import PrepareSentenceContext
+from src.DetectLM import DetectLM
+from src.PerplexityEvaluator import PerplexityEvaluator
+from src.PrepareSentenceContext import PrepareSentenceContext
 from glob import glob
 
 logging.basicConfig(level=logging.INFO)
@@ -19,21 +19,23 @@ def read_all_csv_files(pattern):
         df = pd.concat([df, pd.read_csv(f)])
     return df
 
+
 def fit_pval_func(xx, G=501):
     qq = np.linspace(0, 1, G)
     yy = [np.quantile(xx, q) for q in qq]
     return interp1d(yy, 1 - qq, fill_value=(1, 0), bounds_error=False)
 
+
 def get_pval_func_dict(df, min_len=0, max_len=100):
     """
     One pvalue function for every length in the range(min_len, max_len)
 
-    :param df:  data frame with columns 'logloss' and 'length'
+    :param df:  data frame with columns 'response' and 'length'
     :param min_len:  optional cutoff value
     :param max_len:  optional cutoff value
     :return:
     """
-    pval_func_list = [(c[0], fit_pval_func(c[1]['logloss']))
+    pval_func_list = [(c[0], fit_pval_func(c[1]['response']))
                       for c in df.groupby('length') if min_len <= c[0] <= max_len]
     return dict(pval_func_list)
 
@@ -42,6 +44,7 @@ def main():
     parser = argparse.ArgumentParser(description='Illustrate histogram and expected log-perplexity')
     parser.add_argument('-null', type=str, help='input pattern', default="results/gpt_sent_perp_*.csv")
     parser.add_argument('-i', type=str, help='input text file', default="input file")
+    parser.add_argument('--context', action='store_true')
     args = parser.parse_args()
 
     pattern = args.null
@@ -71,7 +74,11 @@ def main():
     with open(input_file, 'rt') as f:
         text = f.read()
 
-    parse_chunks = PrepareSentenceContext(context_policy='previous_sentence')
+    if args.context:
+        context_policy = 'previous_sentence'
+    else:
+        context_policy = None
+    parse_chunks = PrepareSentenceContext(context_policy=context_policy)
     chunks = parse_chunks(text)
 
     logging.info("Testing parsed document")
@@ -79,7 +86,8 @@ def main():
 
     print(res['sentences'])
     print(f"HC = {res['HC']}")
-    print(f"Fisher (pvalue) = {res['fisher_pvalue']}")
+    print(f"Fisher = {res['fisher']}")
+    print(f"Fisher (chisquared pvalue) = {res['fisher_pvalue']}")
 
 
 if __name__ == '__main__':
