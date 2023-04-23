@@ -1,8 +1,7 @@
-import spacy
 import numpy as np
 
 
-def mix_lists(lst0: list, lst1: list, eps: float) -> dict:
+def mix_lists(lst0: list, lst1: list, eps: float) -> (list, list):
     """
     Mix elements from lst0 and lst1 according to the mixture probability eps
 
@@ -12,8 +11,8 @@ def mix_lists(lst0: list, lst1: list, eps: float) -> dict:
         :eps    the probability of replacing an element in lst0 by the corresponding element in lst1
 
     Returns:
-        :mixted list
-        :I   indexes of replaced elements
+        :mixed list
+        :I  indices of replaced elements
     """
     n = min(len(lst1), len(lst0))
     I = np.random.rand(n) < eps

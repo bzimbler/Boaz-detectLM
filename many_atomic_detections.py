@@ -42,16 +42,20 @@ def process_text(text, atomic_detector, parser):
     return dict(chunk_ids=ids, responses=responses, lengths=lengths, context_lengths=context_lengths)
 
 
-
-
-def iterate_over_texts(texts, atomic_detector, parser, output_file="out.csv"):
+def iterate_over_texts(texts, atomic_detector, parser, output_file):
     ids = []
     lengths = []
     responses = []
     context_lengths = []
     names = []
     for name, text in tqdm(texts):
-        r = process_text(text, atomic_detector, parser)
+        try:
+            r = process_text(text, atomic_detector, parser)
+        except KeyboardInterrupt:
+            break
+        except:
+            print("Error processing text")
+            continue
         ids += r['chunk_ids']
         responses += r['responses']
         lengths += r['lengths']
@@ -73,26 +77,37 @@ def get_text_data_from_files(path, extension='*.txt'):
             yield fn, f.read()
 
 
-def get_text_from_wiki_dataset():
+def get_text_from_wiki_dataset(author='machine'):
     dataset = load_dataset("aadityaubhat/GPT-wiki-intro")
     for d in tqdm(dataset['train']):
-        text = d['prompt'] + d['generated_text']
+        machine_text = d['prompt'] + d['generated_text']
+        text = machine_text if author == 'machine' else d['wiki_intro']
         name = d['title']
         yield name, text
 
 
-def get_text_from_wikibio_dataset():
+def get_text_from_chatgpt_news_dataset(author='machine', n=0):
+    dataset = load_dataset("isarth/chatgpt-news-articles")
+    for d in tqdm(list(dataset['train'])[n:]):
+        text = d['chatgpt'] if author == 'machine' else d['article']
+        name = d['id']
+        yield name, text
+
+
+def get_text_from_wikibio_dataset(author='machine'):
     dataset = load_dataset("potsawee/wiki_bio_gpt3_hallucination")
-    #features: ['gpt3_text', 'wiki_bio_text', 'gpt3_sentences', 'annotation', 'wiki_bio_test_idx'],
+    # features: ['gpt3_text', 'wiki_bio_text', 'gpt3_sentences', 'annotation', 'wiki_bio_test_idx'],
     for d in tqdm(dataset['train']):
-        text = d['gpt3_text']
+        text = d['gpt3_text'] if author == 'machine' else d['wiki_bio_text']
         name = d['wiki_bio_test_idx']
         yield name, text
+
 
 def main():
     parser = argparse.ArgumentParser(description='Apply atomic detector many times to characterize distribution')
     parser.add_argument('-i', type=str, help='data file', default="")
     parser.add_argument('--context', action='store_true')
+    parser.add_argument('--human', action='store_true')
     args = parser.parse_args()
 
     lm_name = "gpt2"
@@ -110,12 +125,17 @@ def main():
 
     dataset_name = args.i
 
+    author = 'human' if args.human else 'machine'
+
     if args.i == "wiki":
         logging.info("Processing wiki dataset...")
-        texts = get_text_from_wiki_dataset()
+        texts = get_text_from_wiki_dataset(author)
     elif args.i == "wikibio":
         logging.info("Processing wiki bio dataset...")
-        texts = get_text_from_wikibio_dataset()
+        texts = get_text_from_wikibio_dataset(author)
+    elif args.i == 'news':
+        logging.info("Processing wiki bio dataset...")
+        texts = get_text_from_chatgpt_news_dataset(author, n=1700+2104)
     else:
         texts = get_text_data_from_files(args.i, extension='*.txt')
 
@@ -123,7 +143,7 @@ def main():
     sentence_detector = PerplexityEvaluator(model, tokenizer)
     parser = PrepareSentenceContext(context_policy=context_policy)
 
-    out_filename = f"{lm_name}_{context_policy}_{dataset_name}.csv"
+    out_filename = f"{lm_name}_{context_policy}_{dataset_name}_{author}.csv"
     print(f"Saving results to {out_filename}")
     iterate_over_texts(texts, sentence_detector, parser, output_file=out_filename)
 
