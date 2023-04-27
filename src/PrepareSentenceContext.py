@@ -84,5 +84,5 @@ class PrepareSentenceContext(object):
                     context = None
 
                 contexts.append(context)
-        return {'text': texts, 'length': lengths, 'context': contexts, 'tags': tags}
+        return {'text': texts, 'length': lengths, 'context': contexts, 'tag': tags}
 

@@ -11,7 +11,7 @@ def truncae_to_max_no_tokens(text, max_no_tokens):
 
 class DetectLM(object):
     def __init__(self, sentence_detection_function, survival_function_dict,
-                 min_len=5, max_len=60,
+                 min_len=1, max_len=100,
                  length_limit_policy='truncate', ignore_first_sentence=False):
         """
         Test for the presence of sentences of irregular origin as reflected by the
@@ -65,7 +65,7 @@ class DetectLM(object):
             pval = self.survival_function_dict[length](float(response))
             return response, pval, comment
         else:
-            comment = "ignored (below minimum length)"
+            comment = "ignored (below minimal length)"
             return np.nan, np.nan, comment
 
     def get_pvals(self, sentences: [str], contexts: [str]) -> ([str], [float], [float]):

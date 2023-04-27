@@ -2,4 +2,5 @@
 language-model-name: "gpt2"
 ignore-first-sentence: true
 context-null-data-file: "results/gpt2_previous_sentence_wiki_machine.csv"
-no-context-null-data-file: "results/gpt2_no_context_wiki_machine.csv"
+no-context-null-data-file: "results/gpt2_no_context_files_machine.csv"
+#no-context-null-data-file: "results/gpt2_no_context_wiki_machine.csv"

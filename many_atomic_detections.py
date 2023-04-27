@@ -73,6 +73,7 @@ def get_text_data_from_files(path, extension='*.txt'):
     logging.info(f"Reading text data from {path}...")
     lo_fns = glob(path + extension)
     for fn in lo_fns:
+        logging.info(f"Reading text from {fn}")
         with open(fn, "rt") as f:
             yield fn, f.read()
 
@@ -135,15 +136,17 @@ def main():
         texts = get_text_from_wikibio_dataset(author)
     elif args.i == 'news':
         logging.info("Processing wiki bio dataset...")
-        texts = get_text_from_chatgpt_news_dataset(author, n=1700+2104)
+        texts = get_text_from_chatgpt_news_dataset(author)
     else:
         texts = get_text_data_from_files(args.i, extension='*.txt')
+        dataset_name = 'files'
 
+    out_filename = f"{lm_name}_{context_policy}_{dataset_name}_{author}.csv"
     logging.info(f"Iterating over texts...")
     sentence_detector = PerplexityEvaluator(model, tokenizer)
     parser = PrepareSentenceContext(context_policy=context_policy)
 
-    out_filename = f"{lm_name}_{context_policy}_{dataset_name}_{author}.csv"
+
     print(f"Saving results to {out_filename}")
     iterate_over_texts(texts, sentence_detector, parser, output_file=out_filename)
 

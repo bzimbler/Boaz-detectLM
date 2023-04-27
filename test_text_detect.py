@@ -92,7 +92,8 @@ def main():
         df_null = df_null[df_null.num > 1]
     pval_functions = get_pval_func_dict(df_null)
 
-    max_len = np.max(list(pval_functions.keys()))
+    #max_len = np.max(list(pval_functions.keys()))
+    max_len = 50
 
     logging.info(f"Loading model and detection function...")
 
@@ -111,6 +112,7 @@ def main():
     sentence_detector = PerplexityEvaluator(model, tokenizer)
     logging.debug("Initializing detector...")
     detector = DetectLM(sentence_detector, pval_functions,
+                        min_len=10,
                         max_len=max_len, length_limit_policy='truncate',
                         ignore_first_sentence=
                         True if context_policy == 'previous_sentence' else False
@@ -138,7 +140,7 @@ def main():
 
     df = res['sentences']
 
-    df['tag'] = chunks['tags']
+    df['tag'] = chunks['tag']
     df.loc[df.tag.isna(), 'tag'] = 'not edit'
 
     print(f"Edit rate = {np.mean(df['tag'] == '<edit>')}")
@@ -147,7 +149,7 @@ def main():
     df.to_csv(output_file)
 
     print(df.groupby('tag').response.mean())
-    print(df)
+    print(df[df['mask']])
     print(f"HC = {res['HC']}")
     print(f"Fisher = {res['fisher']}")
     print(f"Fisher (chisquared pvalue) = {res['fisher_pvalue']}")
