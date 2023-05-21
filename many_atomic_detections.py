@@ -86,6 +86,7 @@ def get_text_data_from_files(path, extension='*.txt'):
 def main():
     parser = argparse.ArgumentParser(description='Apply atomic detector many times to characterize distribution')
     parser.add_argument('-i', type=str, help='database name or file', default="")
+    parser.add_argument('-o', type=str, help='output folder', default="./results")
     parser.add_argument('-model-name', type=str, default='gpt2')
     parser.add_argument('--context', action='store_true')
     parser.add_argument('--human', action='store_true')
@@ -148,7 +149,7 @@ def main():
         lm_name_str = lm_name.split("/")[-1]
     else:
         lm_name_str = lm_name
-    out_filename = f"results/{lm_name_str}_{context_policy}_{dataset_name}_{author}.csv"
+    out_filename = f"{args.o}/{lm_name_str}_{context_policy}_{dataset_name}_{author}.csv"
     logging.info(f"Iterating over texts...")
     sentence_detector = PerplexityEvaluator(model, tokenizer)
     parser = PrepareSentenceContext(context_policy=context_policy)
