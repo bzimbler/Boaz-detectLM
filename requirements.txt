@@ -6,4 +6,4 @@ pandas
 datasets
 scipy
 regex
-spacy['en_core_web_sm']
+spacy
