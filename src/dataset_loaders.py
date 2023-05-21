@@ -24,7 +24,11 @@ def get_text_from_wiki_dataset(shuffle=False, text_field=None):
                        human_field="wiki_intro", shuffle=shuffle, text_field=text_field)
 
 
-def get_text_from_wiki_long_dataset(shuffle=False, text_field=None, iterable=False):
+def get_text_from_wiki_long_dataset(shuffle=False, text_field=None):
+    get_dataset(name="alonkipnis/wiki-intro-long", machine_field='generated_intro',
+                       human_field="wiki_intro", shuffle=shuffle, text_field=text_field)
+
+def get_text_from_wiki_long_dataset_local(shuffle=False, text_field=None, iterable=False):
     """
     A version of wiki_intro dataset with at least 15 sentences per generated article
     """
@@ -40,7 +44,7 @@ def get_text_from_wiki_long_dataset(shuffle=False, text_field=None, iterable=Fal
         return ds
 
 
-def get_text_from_chatgpt_news_long_dataset(shuffle=False, text_field=None, iterable=False):
+def get_text_from_chatgpt_news_long_dataset_local(shuffle=False, text_field=None, iterable=False):
     """
     A version of chatgpt-news-articles dataset with at least 15 sentences per generated article
     Only 'train' split is included
@@ -57,6 +61,10 @@ def get_text_from_chatgpt_news_long_dataset(shuffle=False, text_field=None, iter
         return ds
 
 
+
+def get_text_from_chatgpt_news_long_dataset(shuffle=False, text_field=None):
+    return get_dataset(name="Data/news-chatgpt-long", machine_field='chatgpt',
+                       human_field="article", shuffle=shuffle, text_field=text_field)
 
 def get_text_from_chatgpt_news_dataset(shuffle=False, text_field=None):
     return get_dataset(name="isarth/chatgpt-news-articles", machine_field='chatgpt',
