@@ -28,7 +28,7 @@ def get_text_from_wiki_long_dataset(shuffle=False, text_field=None, iterable=Fal
     """
     A version of wiki_intro dataset with at least 15 sentences per generated article
     """
-    dataset = load_from_disk("Data/wiki_intro_long")
+    dataset = load_dataset("alonkipnis/wiki_intro_long")
     ds = dataset.rename_columns({"wiki_intro": 'human_text', "generated_intro": 'machine_text'})
     if text_field:
         ds = ds.rename_columns({text_field: 'text'})
@@ -45,7 +45,7 @@ def get_text_from_chatgpt_news_long_dataset(shuffle=False, text_field=None, iter
     A version of chatgpt-news-articles dataset with at least 15 sentences per generated article
     Only 'train' split is included
     """
-    dataset = load_from_disk("Data/news_chatgpt_long")
+    dataset = load_dataset("alonkipnis/news_chatgpt_long")
     ds = dataset.rename_columns({"article": 'human_text', "chatgpt": 'machine_text'})
     if text_field:
         ds = ds.rename_columns({text_field: 'text'})
@@ -66,3 +66,9 @@ def get_text_from_chatgpt_news_dataset(shuffle=False, text_field=None):
 def get_text_from_wikibio_dataset(shuffle=False, text_field=None):
     return get_dataset(name="potsawee/wiki_bio_gpt3_hallucination", machine_field='gpt3_text',
                        human_field="wiki_bio_text", shuffle=shuffle, text_field=text_field)
+
+## New datasets (22/5/2023)
+def get_text_from_alpaca_gpt4_dataset(shuffle=False, text_field=None):
+    return get_dataset(name="polyware-ai/alpaca-gpt4-cleaned", machine_field='output',
+                       human_field="instruction", shuffle=shuffle, text_field=text_field)
+
