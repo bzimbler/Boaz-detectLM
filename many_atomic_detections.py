@@ -5,6 +5,7 @@ This is useful for:
  2. Characterizing the power of the global detector against a mixtures from a specific domain.
 
 """
+import re
 
 import torch
 import pandas as pd
@@ -14,7 +15,10 @@ import logging
 import argparse
 from src.PerplexityEvaluator import PerplexityEvaluator
 from src.PrepareSentenceContext import PrepareSentenceContext
-from datasets import load_dataset
+from src.dataset_loaders import (get_text_from_chatgpt_news_dataset,
+                                 get_text_from_wiki_dataset,
+                                 get_text_from_wiki_long_dataset,
+                                 get_text_from_chatgpt_news_long_dataset)
 from glob import glob
 
 logging.basicConfig(level=logging.INFO)
@@ -42,19 +46,20 @@ def process_text(text, atomic_detector, parser):
     return dict(chunk_ids=ids, responses=responses, lengths=lengths, context_lengths=context_lengths)
 
 
-def iterate_over_texts(texts, atomic_detector, parser, output_file):
+def iterate_over_texts(dataset, atomic_detector, parser, output_file):
     ids = []
     lengths = []
     responses = []
     context_lengths = []
     names = []
-    for name, text in tqdm(texts):
+    for d in tqdm(dataset):
+        name = d['id']
         try:
-            r = process_text(text, atomic_detector, parser)
+            r = process_text(d['text'], atomic_detector, parser)
         except KeyboardInterrupt:
             break
         except:
-            print("Error processing text")
+            print(f"Error processing {name}")
             continue
         ids += r['chunk_ids']
         responses += r['responses']
@@ -75,43 +80,37 @@ def get_text_data_from_files(path, extension='*.txt'):
     for fn in lo_fns:
         logging.info(f"Reading text from {fn}")
         with open(fn, "rt") as f:
-            yield fn, f.read()
-
-
-def get_text_from_wiki_dataset(author='machine'):
-    dataset = load_dataset("aadityaubhat/GPT-wiki-intro")
-    for d in tqdm(dataset['train']):
-        machine_text = d['prompt'] + d['generated_text']
-        text = machine_text if author == 'machine' else d['wiki_intro']
-        name = d['title']
-        yield name, text
-
-
-def get_text_from_chatgpt_news_dataset(author='machine', n=0):
-    dataset = load_dataset("isarth/chatgpt-news-articles")
-    for d in tqdm(list(dataset['train'])[n:]):
-        text = d['chatgpt'] if author == 'machine' else d['article']
-        name = d['id']
-        yield name, text
-
-
-def get_text_from_wikibio_dataset(author='machine'):
-    dataset = load_dataset("potsawee/wiki_bio_gpt3_hallucination")
-    # features: ['gpt3_text', 'wiki_bio_text', 'gpt3_sentences', 'annotation', 'wiki_bio_test_idx'],
-    for d in tqdm(dataset['train']):
-        text = d['gpt3_text'] if author == 'machine' else d['wiki_bio_text']
-        name = d['wiki_bio_test_idx']
-        yield name, text
+            yield dict(id=fn, text=f.read())
 
 
 def main():
     parser = argparse.ArgumentParser(description='Apply atomic detector many times to characterize distribution')
-    parser.add_argument('-i', type=str, help='data file', default="")
+    parser.add_argument('-i', type=str, help='database name or file', default="")
+    parser.add_argument('-model-name', type=str, default='gpt2')
     parser.add_argument('--context', action='store_true')
     parser.add_argument('--human', action='store_true')
+    parser.add_argument('--shuffle', action='store_true')
+    parser.add_argument('--describe-datasets', action='store_true')
+
     args = parser.parse_args()
 
-    lm_name = "gpt2"
+    lo_data_loaders = {'wiki': get_text_from_wiki_dataset,
+                       'wiki-long': get_text_from_wiki_long_dataset,
+                       'news': get_text_from_chatgpt_news_dataset,
+                       'news-long': get_text_from_chatgpt_news_long_dataset
+                       }
+    if args.describe_datasets:
+        for k in lo_data_loaders:
+            for author in ['machine', 'human']:
+                print(f"Dataset {k} with author {author}:")
+                ds = lo_data_loaders[k](text_field=f'{author}_text')
+                print(f"\tSize = {ds.dataset_size}")
+                print(f"\tNum rows = {ds.num_rows}")
+                print(f"\tFeatures = {ds.features}")
+        exit(1)
+
+    lm_name = args.model_name
+
     if args.context:
         context_policy = 'previous_sentence'
     else:
@@ -125,30 +124,37 @@ def main():
     model.to(device)
 
     dataset_name = args.i
+    shuffle = args.shuffle
 
     author = 'human' if args.human else 'machine'
 
     if args.i == "wiki":
         logging.info("Processing wiki dataset...")
-        texts = get_text_from_wiki_dataset(author)
-    elif args.i == "wikibio":
-        logging.info("Processing wiki bio dataset...")
-        texts = get_text_from_wikibio_dataset(author)
+        ds = get_text_from_wiki_dataset(text_field=f'{author}_text', shuffle=shuffle)
+    elif args.i == "wiki-long":
+        logging.info("Processing wiki-long dataset...")
+        ds = get_text_from_wiki_long_dataset(text_field=f'{author}_text', shuffle=shuffle)
     elif args.i == 'news':
-        logging.info("Processing wiki bio dataset...")
-        texts = get_text_from_chatgpt_news_dataset(author)
+        logging.info("Processing news dataset...")
+        ds = get_text_from_chatgpt_news_dataset(text_field=f'{author}_text', shuffle=shuffle)
+    elif args.i == 'news-long':
+        logging.info("Processing news-long dataset...")
+        ds = get_text_from_chatgpt_news_long_dataset(text_field=f'{author}_text', shuffle=shuffle)
     else:
-        texts = get_text_data_from_files(args.i, extension='*.txt')
+        ds = get_text_data_from_files(args.i, extension='*.txt')
         dataset_name = 'files'
 
-    out_filename = f"{lm_name}_{context_policy}_{dataset_name}_{author}.csv"
+    if "/" in lm_name:
+        lm_name_str = lm_name.split("/")[-1]
+    else:
+        lm_name_str = lm_name
+    out_filename = f"results/{lm_name_str}_{context_policy}_{dataset_name}_{author}.csv"
     logging.info(f"Iterating over texts...")
     sentence_detector = PerplexityEvaluator(model, tokenizer)
     parser = PrepareSentenceContext(context_policy=context_policy)
 
-
     print(f"Saving results to {out_filename}")
-    iterate_over_texts(texts, sentence_detector, parser, output_file=out_filename)
+    iterate_over_texts(ds, sentence_detector, parser, output_file=out_filename)
 
 
 if __name__ == '__main__':

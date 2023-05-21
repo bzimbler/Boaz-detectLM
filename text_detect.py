@@ -1,17 +1,18 @@
 import torch
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from scipy.interpolate import interp1d
 import logging
 import numpy as np
 import argparse
 from src.DetectLM import DetectLM
 from src.PerplexityEvaluator import PerplexityEvaluator
 from src.PrepareSentenceContext import PrepareSentenceContext
+from fit_survival_function import fit_per_length_survival_function
 from glob import glob
 import pathlib
 import yaml
 import re
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,26 +25,23 @@ def read_all_csv_files(pattern):
     return df
 
 
-def fit_pval_func(xx, G=501):
-    qq = np.linspace(0, 1, G)
-    yy = [np.quantile(xx, q) for q in qq]
-    return interp1d(yy, 1 - qq, fill_value=(1, 0), bounds_error=False)
-
-
-def get_pval_func_dict(df, min_len=0, max_len=100):
+def get_survival_function(df, G=101):
     """
-    One pvalue function for every length in the range(min_len, max_len)
+    One survival function for every sentence length in tokens
 
-    :param df:  data frame with columns 'response' and 'length'
-    :param min_len:  optional cutoff value
-    :param max_len:  optional cutoff value
-    :return:
+    Args:
+    :df:  data frame with columns 'response' and 'length'
+
+    Return:
+        bivariate function (length, responce) -> (0,1)
+
     """
     assert not df.empty
     value_name = "response" if "response" in df.columns else "logloss"
-    pval_func_list = [(c[0], fit_pval_func(c[1][value_name]))
-                      for c in df.groupby('length') if min_len <= c[0] <= max_len]
-    return dict(pval_func_list)
+
+    ll = df['length']
+    xx1 = df[value_name]
+    return fit_per_length_survival_function(ll, xx1, log_space=True, G=G)
 
 
 def mark_edits_remove_tags(chunks, tag="edit"):
@@ -88,12 +86,13 @@ def main():
 
     df_null = read_all_csv_files(null_data_file)
 
+    max_tokens_per_sentence = params['max-tokens-per-sentence']
+    min_tokens_per_sentence = params['min-tokens-per-sentence']
+
     if params['ignore-first-sentence']:
         df_null = df_null[df_null.num > 1]
-    pval_functions = get_pval_func_dict(df_null)
-
-    #max_len = np.max(list(pval_functions.keys()))
-    max_len = 50
+        logging.info(f"Null data contains {len(df_null)} records")
+    pval_functions = get_survival_function(df_null, G=params['number-of-interpolation-points'])
 
     logging.info(f"Loading model and detection function...")
 
@@ -112,8 +111,10 @@ def main():
     sentence_detector = PerplexityEvaluator(model, tokenizer)
     logging.debug("Initializing detector...")
     detector = DetectLM(sentence_detector, pval_functions,
-                        min_len=10,
-                        max_len=max_len, length_limit_policy='truncate',
+                        min_len=min_tokens_per_sentence,
+                        max_len=max_tokens_per_sentence,
+                        length_limit_policy='truncate',
+                        HC_type=params['hc-type'],
                         ignore_first_sentence=
                         True if context_policy == 'previous_sentence' else False
                         )
@@ -121,10 +122,7 @@ def main():
     input_file = args.i
     logging.info(f"Parsing document {input_file}...")
 
-    if pathlib.Path(input_file).suffix == '.csv':
-        text = pd.read_csv(input_file)
-        engine = 'pandas'
-    elif pathlib.Path(input_file).suffix == '.txt':
+    if pathlib.Path(input_file).suffix == '.txt':
         engine = 'spacy'
         with open(input_file, 'rt') as f:
             text = f.read()
@@ -143,16 +141,26 @@ def main():
     df['tag'] = chunks['tag']
     df.loc[df.tag.isna(), 'tag'] = 'not edit'
 
-    print(f"Edit rate = {np.mean(df['tag'] == '<edit>')}")
+
 
     output_file = "out.csv"
     df.to_csv(output_file)
 
     print(df.groupby('tag').response.mean())
     print(df[df['mask']])
+    len_valid = len(df[~df.pvalue.isna()])
+    print("Length valid: ", len_valid)
+    print(f"Edit rate = {np.mean(df['tag'] == '<edit>')}")
     print(f"HC = {res['HC']}")
     print(f"Fisher = {res['fisher']}")
     print(f"Fisher (chisquared pvalue) = {res['fisher_pvalue']}")
+    dfr = df[df['mask']]
+    precision = np.mean(dfr['tag'] == '<edit>')
+    recall = np.sum((df['mask'] == True) & (df['tag'] == '<edit>')) / np.sum(df['tag'] == '<edit>')
+    print("Precision = ", precision)
+    print("recall = ", recall)
+    print("F1 = ", 2 * precision*recall / (precision + recall))
+    print()
 
 
 if __name__ == '__main__':

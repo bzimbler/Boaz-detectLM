@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Evaluate log-perplexity of an input text')
+    parser = argparse.ArgumentParser(description='Evaluate log-perplexity of the text')
     parser.add_argument('-text', type=str, help='input text', default="Hello world")
     args = parser.parse_args()
 

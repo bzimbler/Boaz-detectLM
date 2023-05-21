@@ -1,0 +1,68 @@
+from datasets import load_dataset, load_from_disk
+from tqdm import tqdm
+
+SEED = 42
+
+
+def get_dataset(name: str, machine_field, human_field, iterable=False,
+                text_field=None, shuffle=False):
+    dataset = load_dataset(name)['train']
+    ds = dataset.rename_columns({human_field: 'human_text', machine_field: 'machine_text'})
+    if text_field:
+        ds = ds.rename_columns({text_field: 'text'})
+
+    if iterable:
+        ds = ds.to_iterable_dataset()
+    if shuffle:
+        return ds.shuffle(seed=SEED)
+    else:
+        return ds
+
+
+def get_text_from_wiki_dataset(shuffle=False, text_field=None):
+    return get_dataset(name="aadityaubhat/GPT-wiki-intro", machine_field='generated_intro',
+                       human_field="wiki_intro", shuffle=shuffle, text_field=text_field)
+
+
+def get_text_from_wiki_long_dataset(shuffle=False, text_field=None, iterable=False):
+    """
+    A version of wiki_intro dataset with at least 15 sentences per generated article
+    """
+    dataset = load_from_disk("Data/wiki_intro_long")
+    ds = dataset.rename_columns({"wiki_intro": 'human_text', "generated_intro": 'machine_text'})
+    if text_field:
+        ds = ds.rename_columns({text_field: 'text'})
+    if iterable:
+        ds = ds.to_iterable_dataset()
+    if shuffle:
+        return ds.shuffle(seed=SEED)
+    else:
+        return ds
+
+
+def get_text_from_chatgpt_news_long_dataset(shuffle=False, text_field=None, iterable=False):
+    """
+    A version of chatgpt-news-articles dataset with at least 15 sentences per generated article
+    Only 'train' split is included
+    """
+    dataset = load_from_disk("Data/news_chatgpt_long")
+    ds = dataset.rename_columns({"article": 'human_text', "chatgpt": 'machine_text'})
+    if text_field:
+        ds = ds.rename_columns({text_field: 'text'})
+    if iterable:
+        ds = ds.to_iterable_dataset()
+    if shuffle:
+        return ds.shuffle(seed=SEED)
+    else:
+        return ds
+
+
+
+def get_text_from_chatgpt_news_dataset(shuffle=False, text_field=None):
+    return get_dataset(name="isarth/chatgpt-news-articles", machine_field='chatgpt',
+                       human_field="article", shuffle=shuffle, text_field=text_field)
+
+
+def get_text_from_wikibio_dataset(shuffle=False, text_field=None):
+    return get_dataset(name="potsawee/wiki_bio_gpt3_hallucination", machine_field='gpt3_text',
+                       human_field="wiki_bio_text", shuffle=shuffle, text_field=text_field)

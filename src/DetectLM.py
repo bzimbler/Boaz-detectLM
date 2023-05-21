@@ -10,8 +10,8 @@ def truncae_to_max_no_tokens(text, max_no_tokens):
 
 
 class DetectLM(object):
-    def __init__(self, sentence_detection_function, survival_function_dict,
-                 min_len=1, max_len=100,
+    def __init__(self, sentence_detection_function, survival_function_per_length,
+                 min_len=1, max_len=100, HC_type="stbl",
                  length_limit_policy='truncate', ignore_first_sentence=False):
         """
         Test for the presence of sentences of irregular origin as reflected by the
@@ -20,7 +20,7 @@ class DetectLM(object):
 
         :param sentence_detection_function:  a function returning the log-perplexity of the text
         based on a candidate language model
-        :param survival_function_dict:  survival_function_dict(x, l) is the probability of the language
+        :param survival_function_per_length:  survival_function_per_length(l, x) is the probability of the language
         model to produce a sentence of log-perplexity as extreme as x or more, for an input sentence s
         of length l or a for an input pair (s, c) with sentence s of length l under context c.
         :param length_limit_policy: what should we do if a sentence is too long. Options are:
@@ -31,12 +31,13 @@ class DetectLM(object):
         context of the form previous sentence.
         """
 
-        self.survival_function_dict = survival_function_dict
+        self.survival_function_per_length = survival_function_per_length
         self.sentence_detector = sentence_detection_function
         self.min_len = min_len
         self.max_len = max_len
         self.length_limit_policy = length_limit_policy
         self.ignore_first_sentence = ignore_first_sentence
+        self.HC_stbl = True if HC_type == 'stbl' else False
 
     def _logperp(self, sent: str, context=None) -> float:
         return float(self.sentence_detector(sent, context))
@@ -62,10 +63,18 @@ class DetectLM(object):
                     comment = "exceeding length limit; resorted to max-available length"
                     length = self.max_len
             response = self._logperp(sent, context)
-            pval = self.survival_function_dict[length](float(response))
+            pval = self.survival_function_per_length(length, float(response))
+            assert pval >= 0, "Negative P-value. Something is wrong."
+            logging.debug(f"Sentences: {sent}")
+            logging.debug(f"Context: {context}")
+            logging.debug(f"Length: {length}")
+            logging.debug(f"Response: {response}")
+            logging.debug(f"P-value: {pval}")
             return response, pval, comment
         else:
             comment = "ignored (below minimal length)"
+            if len(sent) > 100:
+                logging.warning(f"Sentence is too long ({sent})")
             return np.nan, np.nan, comment
 
     def get_pvals(self, sentences: [str], contexts: [str]) -> ([str], [float], [float]):
@@ -86,31 +95,39 @@ class DetectLM(object):
 
     def testHC(self, sentences: [str]) -> float:
         pvals = self.get_pvals(sentences)[1]
-        mt = MultiTest(pvals)
+        mt = MultiTest(pvals, stbl=self.HC_stbl)
         mt.hc()[0]
 
     def testFisher(self, sentences: [str]) -> dict:
         pvals = self.get_pvals(sentences)[1]
-        mt = MultiTest(pvals)
+        mt = MultiTest(pvals, stbl=self.HC_stbl)
         return dict(zip(['Fn', 'pvalue'], mt.fisher()))
 
     def _test_chunked_doc(self, lo_chunks: [str], lo_contexts: [str]) -> (MultiTest, pd.DataFrame):
         pvals, responses, comments = self.get_pvals(lo_chunks, lo_contexts)
         if self.ignore_first_sentence:
             pvals[0] = np.nan
-            logging.info('Ignoring the first sentence in the document.')
+            logging.info('Ignoring the first sentence.')
             comments[0] = "ignored (first sentence)"
         df = pd.DataFrame({'sentence': lo_chunks, 'response': responses, 'pvalue': pvals,
                            'context': lo_contexts, 'comment': comments},
                           index=range(len(lo_chunks)))
-        return MultiTest(df[~df.pvalue.isna()].pvalue), df
+        df_test = df[~df.pvalue.isna()]
+        if df_test.empty:
+            logging.warning('No valid chunks to test.')
+            return None, df
+        return MultiTest(df_test.pvalue, stbl=self.HC_stbl), df
 
     def test_chunked_doc(self, lo_chunks: [str], lo_contexts: [str]) -> dict:
         mt, df = self._test_chunked_doc(lo_chunks, lo_contexts)
-        hc, hct = mt.hc()
-        fisher = mt.fisher()
-
-        df['mask'] = df['pvalue'] <= hct
+        if mt is None:
+            hc = np.nan
+            fisher = (np.nan, np.nan)
+            df['mask'] = pd.NA
+        else:
+            hc, hct = mt.hc()
+            fisher = mt.fisher()
+            df['mask'] = df['pvalue'] <= hct
         return dict(sentences=df, HC=hc, fisher=fisher[0], fisher_pvalue=fisher[1])
 
     def test_chunked_doc_hc_dashboard(self, lo_chunks: [str], lo_contexts: [str]) -> pd.DataFrame:
