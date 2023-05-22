@@ -25,7 +25,7 @@ def get_text_from_wiki_dataset(shuffle=False, text_field=None):
 
 
 def get_text_from_wiki_long_dataset(shuffle=False, text_field=None):
-    get_dataset(name="alonkipnis/wiki-intro-long", machine_field='generated_intro',
+    return get_dataset(name="alonkipnis/wiki-intro-long", machine_field='generated_intro',
                        human_field="wiki_intro", shuffle=shuffle, text_field=text_field)
 
 def get_text_from_wiki_long_dataset_local(shuffle=False, text_field=None, iterable=False):

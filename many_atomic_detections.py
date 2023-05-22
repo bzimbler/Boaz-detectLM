@@ -142,7 +142,6 @@ def main():
         logging.info("Processing news-long dataset...")
         ds = get_text_from_chatgpt_news_long_dataset(text_field=f'{author}_text', shuffle=shuffle)
     else:
-    else:
         ds = get_text_data_from_files(args.i, extension='*.txt')
         dataset_name = 'files'
 
