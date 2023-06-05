@@ -16,7 +16,7 @@ def fit_survival_func(xx, log_space=True):
 
     Args:
         :xx:  data
-        :log_space:  indicates whether result is in log space or not.
+        :log_space:  indicates whether fitting is in log space or not.
 
     Returns:
          univariate function
@@ -31,6 +31,7 @@ def fit_survival_func(xx, log_space=True):
 
     if log_space:
         qq = -np.log(qq)
+
 
     if log_space:
         return interp1d(sxx, qq, fill_value=(0 , np.log(inf)), bounds_error=False)

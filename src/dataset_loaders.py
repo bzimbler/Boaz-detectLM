@@ -61,6 +61,9 @@ def get_text_from_chatgpt_news_long_dataset_local(shuffle=False, text_field=None
     else:
         return ds
 
+def get_text_from_chatgpt_abstracts_dataset(shuffle=False, text_field=None):
+    return get_dataset(name="NicolaiSivesind/ChatGPT-Research-Abstracts", machine_field="generated_abstract",
+                       human_field="real_abstract", shuffle=shuffle, text_field=text_field)
 
 def get_text_from_chatgpt_news_long_dataset(shuffle=False, text_field=None):
     return get_dataset(name="alonkipnis/news-chatgpt-long", machine_field='chatgpt',

@@ -39,8 +39,9 @@ def get_survival_function(df, G=101):
     assert not df.empty
     value_name = "response" if "response" in df.columns else "logloss"
 
-    ll = df['length']
-    xx1 = df[value_name]
+    df1 = df[~df[value_name].isna()]
+    ll = df1['length']
+    xx1 = df1[value_name]
     return fit_per_length_survival_function(ll, xx1, log_space=True, G=G)
 
 
@@ -150,7 +151,7 @@ def main():
     print(df[df['mask']])
     len_valid = len(df[~df.pvalue.isna()])
     print("Length valid: ", len_valid)
-    print(f"Edit rate = {np.mean(df['tag'] == '<edit>')}")
+    print(f"Num of Edits (rate) = {np.sum(df['tag'] == '<edit>')} ({np.mean(df['tag'] == '<edit>')})")
     print(f"HC = {res['HC']}")
     print(f"Fisher = {res['fisher']}")
     print(f"Fisher (chisquared pvalue) = {res['fisher_pvalue']}")

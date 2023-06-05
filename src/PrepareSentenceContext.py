@@ -39,18 +39,18 @@ class PrepareSentenceContext(object):
         running_sent_num = 0
         tag = None
         for i, sent in enumerate(parsed.sents):
-            # Here we try to track HTML-like tags. There may be
+            # Here we try to track HTML-like tags. There might be
             # some issues because spacy sentence parser has unexpected behavior
             all_tags = re.findall(r"(</?[a-zA-Z0-9 ]+>)", str(sent))
             if len(all_tags) > 0:
                 if all_tags[0][:2] == '</': # a closing tag
                     if tag is None:
-                        logging.warning(f"Closing tag without opening in: {sent}")
+                        logging.warning(f"Closing tag without opening in sentence {i}: {sent}")
                     else:
                         tag = None
                 else: # an opening tag
                     if tag is not None:
-                        logging.warning(f"Opening tag without closing in: {sent}")
+                        logging.warning(f"Opening tag without closing in sentence {i}: {sent}")
                     else:
                         tag = all_tags[0]
             else:  # if text is not a tag
