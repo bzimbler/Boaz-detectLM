@@ -8,6 +8,9 @@ def get_dataset(name: str, machine_field, human_field, iterable=False,
                 text_field=None, shuffle=False):
     dataset = load_dataset(name)['train']
     ds = dataset.rename_columns({human_field: 'human_text', machine_field: 'machine_text'})
+    if 'id' not in ds.features:
+        ids = list(range(len(ds)))
+        ds = ds.add_column("id", ids)
     if text_field:
         ds = ds.rename_columns({text_field: 'text'})
 
