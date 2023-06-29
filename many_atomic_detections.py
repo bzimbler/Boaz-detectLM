@@ -59,9 +59,9 @@ def iterate_over_texts(dataset, atomic_detector, parser, output_file):
             r = process_text(d['text'], atomic_detector, parser)
         except KeyboardInterrupt:
             break
-        except:
-            print(f"Error processing {name}")
-            continue
+        #except:
+            #print(f"Error processing {name}")
+            #continue
         ids += r['chunk_ids']
         responses += r['responses']
         lengths += r['lengths']
@@ -88,7 +88,7 @@ def main():
     parser = argparse.ArgumentParser(description='Apply atomic detector many times to characterize distribution')
     parser.add_argument('-i', type=str, help='database name or file', default="")
     parser.add_argument('-o', type=str, help='output folder', default="./results")
-    parser.add_argument('-model-name', type=str, default='gpt2')
+    parser.add_argument('-model-name', type=str, default='huggyllama/llama-13b')
     parser.add_argument('--context', action='store_true')
     parser.add_argument('--human', action='store_true')
     parser.add_argument('--shuffle', action='store_true')
@@ -120,7 +120,7 @@ def main():
 
     logging.debug(f"Loading Language model {lm_name}...")
     tokenizer = AutoTokenizer.from_pretrained(lm_name)
-    model = AutoModelForCausalLM.from_pretrained(lm_name)
+    model = AutoModelForCausalLM.from_pretrained(lm_name,load_in_8bit=True)
 
     if torch.backends.mps.is_available():
         device = 'mps'
