@@ -128,7 +128,6 @@ def main():
         device = 'cuda'
     else:
         device = 'cpu'
-    model.to(device)
 
     dataset_name = args.i
     shuffle = args.shuffle
