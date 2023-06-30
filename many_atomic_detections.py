@@ -68,11 +68,11 @@ def iterate_over_texts(dataset, atomic_detector, parser, output_file):
         context_lengths += r['context_lengths']
         names += [name] * len(r['chunk_ids'])
 
-        df = pd.DataFrame({'num': ids, 'length': lengths,
+    df = pd.DataFrame({'num': ids, 'length': lengths,
                            'response': responses, 'context_length': context_lengths,
                            'name': names})
-        logging.info(f"Saving results to {output_file}")
-        df.to_csv(output_file)
+    logging.info(f"Saving results to {output_file}")
+    df.to_csv(output_file)
 
 
 def get_text_data_from_files(path, extension='*.txt'):
