@@ -87,7 +87,7 @@ def get_text_data_from_files(path, extension='*.txt'):
 def main():
     parser = argparse.ArgumentParser(description='Apply atomic detector many times to characterize distribution')
     parser.add_argument('-i', type=str, help='database name or file', default="")
-    parser.add_argument('-o', type=str, help='output folder', default="./results")
+    parser.add_argument('-o', type=str, help='output folder', default="")
     parser.add_argument('-model-name', type=str, default='huggyllama/llama-7b')
     parser.add_argument('--context', action='store_true')
     parser.add_argument('--human', action='store_true')
