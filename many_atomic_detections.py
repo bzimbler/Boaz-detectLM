@@ -125,7 +125,7 @@ def main():
     else:
         model = AutoModelForCausalLM.from_pretrained(lm_name, load_in_8bit=True)
 
-if torch.backends.mps.is_available():
+    if torch.backends.mps.is_available():
         device = 'mps'
     elif torch.cuda.is_available():
         device = 'cuda'
