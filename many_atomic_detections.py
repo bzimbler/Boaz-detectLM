@@ -120,7 +120,7 @@ def main():
 
     logging.debug(f"Loading Language model {lm_name}...")
     tokenizer = AutoTokenizer.from_pretrained(lm_name)
-    model = AutoModelForCausalLM.from_pretrained(lm_name,load_in_8bit=True)
+    model = AutoModelForCausalLM.from_pretrained(lm_name,load_in_8bit=True,trust_remote_code=True)
 
     if torch.backends.mps.is_available():
         device = 'mps'
