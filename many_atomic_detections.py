@@ -120,7 +120,7 @@ def main():
 
     logging.debug(f"Loading Language model {lm_name}...")
     tokenizer = AutoTokenizer.from_pretrained(lm_name)
-    if lm_name == "tiiuae/falcon-40b":
+    if lm_name == "tiiuae/falcon-40b" or "tiiuae/falcon-7b":
         model = AutoModelForCausalLM.from_pretrained(lm_name,load_in_8bit=True,trust_remote_code=True)
     else:
         model = AutoModelForCausalLM.from_pretrained(lm_name, load_in_8bit=True,device_map="auto")
