@@ -123,7 +123,7 @@ def main():
     if lm_name == "tiiuae/falcon-40b":
         model = AutoModelForCausalLM.from_pretrained(lm_name,load_in_8bit=True,trust_remote_code=True)
     else:
-        model = AutoModelForCausalLM.from_pretrained(lm_name, load_in_8bit=True)
+        model = AutoModelForCausalLM.from_pretrained(lm_name, load_in_8bit=True,device_map="auto")
 
     if torch.backends.mps.is_available():
         device = 'mps'
