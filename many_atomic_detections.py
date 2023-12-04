@@ -119,11 +119,11 @@ def main():
         context_policy = 'no_context'
 
     logging.debug(f"Loading Language model {lm_name}...")
-    tokenizer = AutoTokenizer.from_pretrained(lm_name)
+    tokenizer = AutoTokenizer.from_pretrained(lm_name,token='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')
     if lm_name == "tiiuae/falcon-40b" or "tiiuae/falcon-7b":
         model = AutoModelForCausalLM.from_pretrained(lm_name,load_in_8bit=True,trust_remote_code=True)
     else:
-        model = AutoModelForCausalLM.from_pretrained(lm_name, load_in_8bit=True,device_map="auto")
+        model = AutoModelForCausalLM.from_pretrained(lm_name, load_in_8bit=True,device_map="auto",token='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')
 
     if torch.backends.mps.is_available():
         device = 'mps'
