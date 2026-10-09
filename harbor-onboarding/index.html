@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harbor × Islo — Onboarding</title>
+  <meta name="description" content="Onboarding guide for the Harbor agent-evaluation framework and running Harbor trials on Islo microVMs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="site-shell">
+    <nav class="topnav" aria-label="Primary">
+      <div class="topnav-inner">
+        <a class="brand" href="#top">Harbor <span>× Islo</span></a>
+        <button class="menu-toggle" type="button" aria-label="Open menu">Menu</button>
+        <div class="nav-links">
+          <a href="#concepts">Concepts</a>
+          <a href="#pipeline">Pipeline</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#islo-repos">Islo repos</a>
+          <a href="#run">Run on Islo</a>
+          <a href="#code">Code dive</a>
+          <a href="#cheatsheet">Cheatsheet</a>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero" id="top">
+      <h1 class="hero-mark">Harbor<em>× Islo</em></h1>
+      <p class="hero-lead">
+        Onboarding for the Harbor agent-evaluation framework, Islo’s fork that
+        branches from it, and the path to run Harbor trials inside Islo microVMs.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#run">Run Harbor on Islo</a>
+        <a class="btn btn-ghost" href="#code">Explore IsloEnvironment</a>
+        <a class="btn btn-ghost" href="https://github.com/harbor-framework/harbor" target="_blank" rel="noopener">Upstream repo</a>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="hero-flow">
+          <div class="node"><strong>Job</strong>agents × tasks × attempts</div>
+          <div class="node"><strong>Trial</strong>one sandbox attempt</div>
+          <div class="node"><strong>Islo VM</strong>gateway + nested Docker</div>
+          <div class="node"><strong>Reward</strong>verifier → trajectory</div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Concepts -->
+      <section id="concepts">
+        <p class="section-label reveal">01 · Mental model</p>
+        <h2 class="reveal">What Harbor is</h2>
+        <p class="section-lead reveal">
+          Harbor evaluates and optimizes AI agents inside isolated sandboxes.
+          You point it at a dataset (or a single task), pick an agent and model,
+          and it fans out trials — locally on Docker or on a cloud environment
+          like Islo, Daytona, or Modal.
+        </p>
+        <div class="concept-grid reveal">
+          <article class="concept">
+            <h3>Task</h3>
+            <p>One evaluation unit: <code>instruction.md</code>, <code>task.toml</code>, <code>environment/</code>, <code>tests/</code>, optional <code>solution/</code>.</p>
+          </article>
+          <article class="concept">
+            <h3>Dataset</h3>
+            <p>A named collection of tasks (e.g. <code>terminal-bench@2.0</code>) from the Harbor registry.</p>
+          </article>
+          <article class="concept">
+            <h3>Agent</h3>
+            <p>The program under test — Claude Code, Codex, OpenHands, Oracle, or a custom <code>BaseAgent</code>.</p>
+          </article>
+          <article class="concept">
+            <h3>Environment</h3>
+            <p>The sandbox provider. Docker by default; <code>--env islo</code> runs the same trial on an Islo microVM.</p>
+          </article>
+          <article class="concept">
+            <h3>Trial / Job</h3>
+            <p>A trial is one agent attempt at one task. A job is the cartesian product, run with concurrency.</p>
+          </article>
+          <article class="concept">
+            <h3>Verifier &amp; trajectory</h3>
+            <p>Tests write a reward under <code>/logs/verifier/</code>. Agents emit ATIF trajectories for debug and training.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- Pipeline -->
+      <section id="pipeline">
+        <p class="section-label reveal">02 · End-to-end</p>
+        <h2 class="reveal">How <code style="font-family:var(--font-mono);font-size:0.7em">harbor run</code> works</h2>
+        <p class="section-lead reveal">
+          CLI builds a <code class="inline">JobConfig</code>, resolves tasks and agents, then
+          queues trials. Each trial starts an environment, runs the agent, verifies, and tears down.
+        </p>
+        <div class="pipeline reveal">
+          <div class="pipeline-step">
+            <div class="n">01</div>
+            <h3>CLI</h3>
+            <p><code>harbor run</code> → <code>JobConfig</code> from flags / YAML</p>
+          </div>
+          <div class="pipeline-step">
+            <div class="n">02</div>
+            <h3>Job</h3>
+            <p>Resolve tasks, preflight env, expand trials</p>
+          </div>
+          <div class="pipeline-step">
+            <div class="n">03</div>
+            <h3>Environment</h3>
+            <p><code>start()</code> — Docker or Islo sandbox</p>
+          </div>
+          <div class="pipeline-step">
+            <div class="n">04</div>
+            <h3>Agent</h3>
+            <p><code>setup</code> + <code>run(instruction)</code></p>
+          </div>
+          <div class="pipeline-step">
+            <div class="n">05</div>
+            <h3>Verifier</h3>
+            <p>Upload tests → reward → stop env</p>
+          </div>
+        </div>
+        <div class="panel-box reveal" style="margin-top:24px">
+          <h3>Local smoke test</h3>
+          <p>Install Harbor and run a single task on Docker before switching providers.</p>
+<pre>uv tool install harbor
+# or: pip install harbor
+
+harbor run \
+  -t hello-world/hello-world \
+  -a oracle \
+  -e docker</pre>
+        </div>
+      </section>
+
+      <!-- Architecture -->
+      <section id="architecture">
+        <p class="section-label reveal">03 · Package map</p>
+        <h2 class="reveal">Harbor source layout</h2>
+        <p class="section-lead reveal">
+          Under <code class="inline">src/harbor/</code> in
+          <a href="https://github.com/harbor-framework/harbor" target="_blank" rel="noopener">harbor-framework/harbor</a>.
+          Same layout in Islo’s fork.
+        </p>
+        <div class="reveal" style="overflow-x:auto">
+          <table class="arch-table">
+            <thead>
+              <tr><th>Package</th><th>Role</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>cli/</code></td><td>Typer entrypoints. <code>harbor run</code> aliases <code>job start</code>.</td></tr>
+              <tr><td><code>job.py</code></td><td>Orchestrates the trial queue and aggregates results.</td></tr>
+              <tr><td><code>trial/</code></td><td>Lifecycle: env start → agent → artifacts → verifier → teardown.</td></tr>
+              <tr><td><code>environments/</code></td><td><code>BaseEnvironment</code>, factory registry, providers (<code>docker/</code>, <code>islo.py</code>, …).</td></tr>
+              <tr><td><code>agents/</code></td><td><code>BaseAgent</code> + built-ins (Claude Code, Terminus, Oracle, …).</td></tr>
+              <tr><td><code>verifier/</code></td><td>Uploads <code>tests/</code>, runs <code>test.sh</code>, parses reward files.</td></tr>
+              <tr><td><code>models/</code></td><td>Pydantic configs: task, trial, job, trajectories (ATIF).</td></tr>
+              <tr><td><code>tasks/</code> · <code>registry/</code></td><td>Download/cache tasks; Harbor Hub dataset registry.</td></tr>
+              <tr><td><code>viewer/</code> · <code>analyze/</code></td><td>Local results UI and LLM trajectory analysis.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note reveal" style="margin-top:18px">
+          Custom environments implement <code class="inline">BaseEnvironment</code>
+          (<code>start</code>, <code>stop</code>, <code>exec</code>, upload/download) and are selected with
+          <code class="inline">--env &lt;type&gt;</code> or <code class="inline">--env module:Class</code>.
+        </p>
+      </section>
+
+      <!-- Islo repos -->
+      <section id="islo-repos">
+        <p class="section-label reveal">04 · Islo branch</p>
+        <h2 class="reveal">Repos that branch from Harbor</h2>
+        <p class="section-lead reveal">
+          Islo contributes a first-class environment provider. Upstream Harbor already
+          ships <code class="inline">IsloEnvironment</code>; Islo also keeps a fork and a faster-moving plugin.
+        </p>
+        <div class="repo-map reveal">
+          <article class="repo-card featured">
+            <div class="tag">Primary fork</div>
+            <h3>islo-labs/harbor-fork</h3>
+            <p>
+              GitHub fork of <code>harbor-framework/harbor</code> with
+              <code>upstream</code> remotes. This is the Islo working branch of Harbor —
+              same in-tree <code>src/harbor/environments/islo.py</code>, examples, and tests.
+            </p>
+            <p style="margin-top:12px">
+              <a href="https://github.com/islo-labs/harbor-fork" target="_blank" rel="noopener">Open harbor-fork →</a>
+            </p>
+          </article>
+          <div class="repo-list">
+            <article class="repo-mini">
+              <h4>harbor-framework/harbor</h4>
+              <p>Canonical upstream. Built-in <code class="inline">EnvironmentType.ISLO</code> and <code class="inline">harbor[islo]</code> extra.</p>
+            </article>
+            <article class="repo-mini">
+              <h4>islo-labs/harbor-env</h4>
+              <p>Standalone PyPI plugin <code class="inline">harbor-islo</code>. Load via <code class="inline">import_path: harbor_islo:IsloEnvironment</code> for an independent release train.</p>
+            </article>
+            <article class="repo-mini">
+              <h4>islo-labs/harbor</h4>
+              <p>Early Islo-owned copy (not the active GitHub fork). Prefer <code class="inline">harbor-fork</code>.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Run on Islo -->
+      <section id="run">
+        <p class="section-label reveal">05 · Provider path</p>
+        <h2 class="reveal">Run Harbor in an Islo environment</h2>
+        <p class="section-lead reveal">
+          Same Harbor jobs — swap the sandbox. Authenticate with an Islo API key,
+          then select the Islo environment type (bundled) or the plugin import path.
+        </p>
+
+        <div class="path-tabs reveal" role="tablist" aria-label="Install paths">
+          <button class="path-tab active" type="button" data-path="bundled">Bundled <code>--env islo</code></button>
+          <button class="path-tab" type="button" data-path="plugin">Plugin <code>harbor-islo</code></button>
+          <button class="path-tab" type="button" data-path="policy">Network policy demo</button>
+          <button class="path-tab" type="button" data-path="gateway">Gateway kwargs</button>
+        </div>
+
+        <div class="path-panel active" data-path="bundled">
+          <div class="panel-box">
+            <h3>Recommended — Harbor with Islo extra</h3>
+            <p>Uses the in-tree provider registered as <code class="inline">type: islo</code>.</p>
+<pre>pip install 'harbor[islo]'
+# from a checkout: uv sync --extra islo
+
+export ISLO_API_KEY=...          # required (Descope key or session JWT)
+export ISLO_API_URL=https://api.islo.dev   # optional
+export ISLO_COMPUTE_URL=...      # optional compute-plane override
+export ANTHROPIC_API_KEY=...     # if your agent needs it
+
+harbor run \
+  --env islo \
+  --dataset terminal-bench@2.0 \
+  --agent claude-code \
+  --model anthropic/claude-opus-4-1 \
+  --n-concurrent 4
+
+# Pass Islo-only constructor kwargs
+harbor run --env islo \
+  --environment-kwarg delete_after_seconds=7200 \
+  --path examples/tasks/islo-network-policy-demo</pre>
+            <p class="note">
+              Default sandbox image is <code class="inline">docker.io/library/islo-runner:latest</code>.
+              Sandboxes auto-delete after 3600s unless you override <code class="inline">delete_after_seconds</code> (0 or a multiple of 60).
+            </p>
+          </div>
+        </div>
+
+        <div class="path-panel" data-path="plugin">
+          <div class="panel-box">
+            <h3>Plugin — independent Islo release train</h3>
+            <p>
+              From <a href="https://github.com/islo-labs/harbor-env" target="_blank" rel="noopener">islo-labs/harbor-env</a>.
+              Useful when Islo needs to ship environment fixes faster than Harbor releases.
+            </p>
+<pre>pip install harbor-islo   # harbor >= 0.6, Python 3.12+
+
+export ISLO_API_KEY=...
+
+harbor run \
+  --env harbor_islo:IsloEnvironment \
+  --dataset terminal-bench@2.0 \
+  --agent claude-code \
+  --model anthropic/claude-opus-4-1</pre>
+<pre># job YAML
+environment:
+  import_path: "harbor_islo:IsloEnvironment"
+  kwargs:
+    gateway_profile: "prod-apis"</pre>
+            <p class="note callout-warn">
+              The plugin currently lags upstream on portable <code class="inline">NetworkPolicy</code> → gateway
+              translation, <code class="inline">delete_after_seconds</code>, and DinD compose service ops.
+              Prefer bundled <code class="inline">--env islo</code> unless you need the plugin release train.
+            </p>
+          </div>
+        </div>
+
+        <div class="path-panel" data-path="policy">
+          <div class="panel-box">
+            <h3>Phased network policy on Islo</h3>
+            <p>
+              Harbor’s portable network policy becomes an ephemeral Islo gateway profile.
+              The demo task keeps setup/verifier on the public baseline and restricts the agent phase.
+            </p>
+<pre>cd harbor   # upstream or harbor-fork checkout
+export ISLO_API_KEY=...
+export ANTHROPIC_API_KEY=...
+
+uv run harbor run \
+  -c examples/configs/environments/islo/network-policy-demo.yaml</pre>
+<pre># examples/configs/environments/islo/network-policy-demo.yaml
+environment:
+  type: islo
+  force_build: false
+  delete: true
+  env:
+    - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+
+agents:
+  - name: claude-code
+    model_name: anthropic/claude-3-5-sonnet-20241022
+
+tasks:
+  - path: examples/tasks/islo-network-policy-demo</pre>
+            <p class="note">
+              Islo allowlists support <strong>exact hostnames only</strong> (no wildcards, IPs, or CIDRs).
+              Don’t combine <code class="inline">network_mode=allowlist|no-network</code> with a custom
+              <code class="inline">gateway</code> / <code class="inline">gateway_profile</code> — Harbor can’t verify the profile matches the policy.
+            </p>
+          </div>
+        </div>
+
+        <div class="path-panel" data-path="gateway">
+          <div class="panel-box">
+            <h3>Named profile vs inline ephemeral gateway</h3>
+            <p>Pick one — never both.</p>
+<pre># Named profile (pre-created in Islo control plane)
+environment:
+  type: islo
+  kwargs:
+    gateway_profile: "prod-apis"
+
+# OR inline rules → Harbor creates harbor-&lt;session&gt; ephemeral profile
+environment:
+  type: islo
+  kwargs:
+    gateway:
+      default_action: "deny"
+      internet_enabled: true
+      rules:
+        - host_pattern: "api.openai.com"
+          action: "allow"
+          provider_key: "openai"
+        - host_pattern: "gist.github.com"
+          action: "allow"</pre>
+            <p class="note">
+              Ephemeral profiles enable <code class="inline">dynamic_network_policy</code> (phase switches
+              during agent/verifier). Named profiles do not — Harbor won’t rewrite a shared production profile mid-trial.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Code dive -->
+      <section id="code">
+        <p class="section-label reveal">06 · Code in detail</p>
+        <h2 class="reveal">IsloEnvironment walkthrough</h2>
+        <p class="section-lead reveal">
+          Canonical implementation:
+          <code class="inline">src/harbor/environments/islo.py</code>
+          (~1300 lines) in upstream and <code class="inline">harbor-fork</code>.
+          Class: <code class="inline">IsloEnvironment(ComposeServiceOpsMixin, BaseEnvironment)</code>.
+          Longer write-ups live in <a href="docs/islo-environment.md">docs/islo-environment.md</a>.
+        </p>
+
+        <div class="explorer reveal">
+          <div class="explorer-nav" role="tablist" aria-label="Code topics">
+            <button type="button" class="active" data-topic="modes">Four start modes</button>
+            <button type="button" data-topic="lifecycle">Sandbox lifecycle</button>
+            <button type="button" data-topic="gateway">Gateway &amp; policy</button>
+            <button type="button" data-topic="exec">Exec / files</button>
+            <button type="button" data-topic="ctor">Constructor kwargs</button>
+            <button type="button" data-topic="plugin">Plugin differences</button>
+          </div>
+
+          <div class="explorer-panel active" data-topic="modes">
+            <h3>Four start modes</h3>
+            <p class="file">IsloEnvironment.start() · islo.py</p>
+            <p>
+              After <code class="inline">_setup_gateway()</code>, <code class="inline">start()</code> branches on the task’s
+              <code class="inline">environment/</code> definition:
+            </p>
+            <ul>
+              <li><strong>Compose</strong> — <code class="inline">docker-compose.yaml</code> (or <code class="inline">extra_docker_compose</code>): sandbox = <code class="inline">islo-runner</code> with Docker capability → <code class="inline">_start_compose()</code> stages Harbor compose templates into <code class="inline">/harbor/compose</code> and runs the <code class="inline">main</code> service.</li>
+              <li><strong>Prebuilt</strong> — <code class="inline">docker_image</code> set and no force-build: that image <em>is</em> the sandbox (<code class="inline">init: minimal</code>).</li>
+              <li><strong>Dockerfile</strong> — build context uploaded, <code class="inline">_build_and_run_docker()</code> creates container <code class="inline">task-env</code> via DinD.</li>
+              <li><strong>Bare</strong> — fallback plain <code class="inline">islo-runner</code> with no nested Docker.</li>
+            </ul>
+<pre>await self._create_sandbox(
+    image=_DEFAULT_IMAGE,  # or docker_image for prebuilt
+    init={"type": "custom", "capabilities": ["docker"]},  # or minimal
+    gateway_profile=gateway_profile_name,
+)
+await self._wait_for_running()  # poll get_sandbox every 2s, up to 60 tries</pre>
+          </div>
+
+          <div class="explorer-panel" data-topic="lifecycle">
+            <h3>Sandbox lifecycle</h3>
+            <p class="file">_create_sandbox · _wait_for_running · stop · attach</p>
+            <div class="method">
+              <code>_client()</code>
+              <p>Lazy <code class="inline">AsyncIslo(api_key, base_url, compute_url, timeout=120)</code>.</p>
+            </div>
+            <div class="method">
+              <code>_create_sandbox(image, init, gateway_profile)</code>
+              <p>
+                Calls <code class="inline">client.sandboxes.create_sandbox</code> with vcpus/memory_mb/disk_gb from Harbor resource config.
+                Optional lifecycle body: <code class="inline">{delete_after: N}</code>. Retries ×3 on <code class="inline">RuntimeError</code>; shields cancel so a half-created VM can still be cleaned up.
+              </p>
+            </div>
+            <div class="method">
+              <code>stop(delete)</code>
+              <p>
+                Compose down or <code class="inline">docker stop task-env</code>, then <code class="inline">_delete_sandbox</code>, finally <code class="inline">_cleanup_gateway</code> (deletes ephemeral profiles only).
+              </p>
+            </div>
+            <div class="method">
+              <code>attach()</code>
+              <p>Replaces the process with <code class="inline">islo use &lt;sandbox&gt; …</code> — compose exec into <code class="inline">main</code>, DinD into <code class="inline">task-env</code>, or bare shell.</p>
+            </div>
+          </div>
+
+          <div class="explorer-panel" data-topic="gateway">
+            <h3>Gateway &amp; network policy</h3>
+            <p class="file">GatewayConfig · _setup_gateway · _apply_network_policy</p>
+            <p>
+              Harbor’s <code class="inline">NetworkPolicy</code> maps to Islo gateway egress:
+            </p>
+            <ul>
+              <li><code class="inline">PUBLIC</code> → allow + internet</li>
+              <li><code class="inline">NO_NETWORK</code> → deny + <code class="inline">internet_enabled=False</code></li>
+              <li><code class="inline">ALLOWLIST</code> → deny + allow rules per <code class="inline">allowed_hosts</code></li>
+            </ul>
+            <div class="method">
+              <code>_setup_gateway()</code>
+              <p>
+                Named profile returned as-is. Otherwise creates ephemeral
+                <code class="inline">harbor-&lt;sanitized-session&gt;</code>, adds rules, stores profile/rule ids.
+              </p>
+            </div>
+            <div class="method">
+              <code>_apply_gateway_config(config)</code>
+              <p>
+                Updates profile, deletes old rules, recreates, sleeps 2s for propagation —
+                used when Harbor flips agent/verifier phase policies.
+              </p>
+            </div>
+<pre>capabilities.dynamic_network_policy = (
+    self._gateway_profile is None and self._gateway_config is None
+)</pre>
+          </div>
+
+          <div class="explorer-panel" data-topic="exec">
+            <h3>Exec and file transfer</h3>
+            <p class="file">exec · upload_* · download_*</p>
+            <ul>
+              <li><code class="inline">_sandbox_exec</code> — SDK <code class="inline">exec_and_wait</code> on the VM</li>
+              <li><code class="inline">_docker_exec</code> — <code class="inline">docker exec … task-env</code> via the VM</li>
+              <li><code class="inline">_compose_main_exec</code> — compose exec into <code class="inline">main</code></li>
+              <li><code class="inline">exec()</code> merges env/user, then picks compose → docker → sandbox</li>
+            </ul>
+            <p>
+              Uploads/downloads use a two-hop when the target isn’t on a bind mount:
+              SDK stage to <code class="inline">/tmp/harbor_&lt;uuid&gt;</code> on the VM, then
+              <code class="inline">docker cp</code> / compose cp into the task container.
+              Paths under mounts, <code class="inline">/tests</code>, and <code class="inline">/solution</code> go straight through the SDK.
+            </p>
+          </div>
+
+          <div class="explorer-panel" data-topic="ctor">
+            <h3>Constructor surface</h3>
+            <p class="file">IsloEnvironment.__init__</p>
+<pre>IsloEnvironment(
+    gateway_profile: str | None = None,
+    gateway: GatewayConfig | dict | None = None,  # XOR with profile
+    delete_after_seconds: int = 3600,             # 0 or % 60 == 0
+    **kwargs,  # BaseEnvironment: environment_dir, session_id,
+               # task_env_config, network_policy, mounts, …
+)</pre>
+            <ul>
+              <li>Reads <code class="inline">ISLO_API_KEY</code>, <code class="inline">ISLO_API_URL</code>, <code class="inline">ISLO_COMPUTE_URL</code></li>
+              <li>Detects compose mode <em>before</em> <code class="inline">super().__init__</code> (validation depends on it)</li>
+              <li>If no custom gateway, builds <code class="inline">_network_policy_gateway_config</code> from the task policy</li>
+              <li>Parses Dockerfile <code class="inline">WORKDIR</code> (default <code class="inline">/app</code>) when not in compose mode</li>
+            </ul>
+            <p class="note">
+              Factory registration: <code class="inline">EnvironmentType.ISLO → harbor.environments.islo:IsloEnvironment</code>
+              with pip extra <code class="inline">islo</code> (<code class="inline">islo>=0.3.3</code>, <code class="inline">dockerfile-parse</code>).
+            </p>
+          </div>
+
+          <div class="explorer-panel" data-topic="plugin">
+            <h3>harbor-env plugin differences</h3>
+            <p class="file">harbor_islo/environment.py · package harbor-islo</p>
+            <ul>
+              <li>Loaded via <code class="inline">import_path</code>, not <code class="inline">type: islo</code></li>
+              <li>No portable NetworkPolicy translation / dynamic phase updates</li>
+              <li>No <code class="inline">delete_after_seconds</code> or <code class="inline">ISLO_COMPUTE_URL</code></li>
+              <li>Still uses older <code class="inline">init_capabilities</code> + CA compose overlay for the gateway proxy</li>
+              <li>No <code class="inline">ComposeServiceOpsMixin</code> / sidecar helpers</li>
+            </ul>
+            <p>
+              Treat the plugin as a compatibility shim for faster Islo iteration;
+              read the bundled <code class="inline">islo.py</code> when learning the full feature set.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cheatsheet -->
+      <section id="cheatsheet">
+        <p class="section-label reveal">07 · Keep nearby</p>
+        <h2 class="reveal">Cheatsheet</h2>
+        <div class="cheat reveal">
+          <article>
+            <h3>CLI essentials</h3>
+            <ul>
+              <li><code class="inline">harbor run -d … -a … -m … -e islo</code></li>
+              <li><code class="inline">harbor datasets list</code></li>
+              <li><code class="inline">harbor task init</code> / <code class="inline">harbor view ./jobs</code></li>
+              <li><code class="inline">harbor agent schema &lt;name&gt;</code></li>
+              <li><code class="inline">--ek KEY=VAL</code> / <code class="inline">--environment-kwarg</code></li>
+            </ul>
+          </article>
+          <article>
+            <h3>Auth &amp; prereqs</h3>
+            <ul>
+              <li><code class="inline">ISLO_API_KEY</code> required</li>
+              <li>Optional <code class="inline">ISLO_API_URL</code> / <code class="inline">ISLO_COMPUTE_URL</code></li>
+              <li><code class="inline">islo</code> CLI on PATH for <code class="inline">attach()</code></li>
+              <li>Agent provider keys as needed</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Task layout</h3>
+            <ul>
+              <li><code class="inline">instruction.md</code> + <code class="inline">task.toml</code></li>
+              <li><code class="inline">environment/</code> Dockerfile or compose</li>
+              <li><code class="inline">tests/test.sh</code> → <code class="inline">/logs/verifier/reward.*</code></li>
+              <li>Optional <code class="inline">solution/solve.sh</code> for Oracle</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Docs &amp; deeper reading</h3>
+            <ul>
+              <li><a href="https://harborframework.com/docs">Harbor docs</a></li>
+              <li><a href="docs/harbor-overview.md">docs/harbor-overview.md</a></li>
+              <li><a href="docs/islo-environment.md">docs/islo-environment.md</a></li>
+              <li><a href="docs/run-harbor-on-islo.md">docs/run-harbor-on-islo.md</a></li>
+              <li><a href="https://github.com/harbor-framework/harbor-cookbook">Harbor Cookbook</a></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Harbor × Islo onboarding — built for internal developer ramp-up.</span>
+      <span>
+        Sources:
+        <a href="https://github.com/harbor-framework/harbor">harbor</a> ·
+        <a href="https://github.com/islo-labs/harbor-fork">harbor-fork</a> ·
+        <a href="https://github.com/islo-labs/harbor-env">harbor-env</a>
+      </span>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
