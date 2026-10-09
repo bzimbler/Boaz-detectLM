@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harbor × Islo — Onboarding</title>
+  <meta name="description" content="Onboarding guide for the Harbor agent-evaluation framework and running Harbor trials on Islo microVMs." />  <style>
+/* Harbor × Islo onboarding — maritime engineering palette */
+:root {
+  --ink: #0b1f2a;
+  --ink-soft: #143042;
+  --teal: #1a7a7a;
+  --teal-bright: #2aa8a0;
+  --seafoam: #3db8a8;
+  --mist: #e8f1f0;
+  --fog: #f4f8f7;
+  --chalk: #f7faf9;
+  --line: rgba(11, 31, 42, 0.12);
+  --line-strong: rgba(11, 31, 42, 0.22);
+  --muted: #5a6f78;
+  --text: #142833;
+  --warn: #b45309;
+  --ok: #15803d;
+  --code-bg: #0f2430;
+  --code-fg: #d7ebe7;
+  --shadow: 0 18px 50px rgba(11, 31, 42, 0.08);
+  --radius: 14px;
+  --font-display: "Avenir Next", "Helvetica Neue", sans-serif;
+  --font-body: "Avenir Next", "Helvetica Neue", -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --max: 1120px;
+  --nav-h: 64px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--text);
+  background:
+    radial-gradient(900px 480px at 12% -10%, rgba(58, 184, 168, 0.18), transparent 55%),
+    radial-gradient(700px 420px at 92% 8%, rgba(26, 122, 122, 0.14), transparent 50%),
+    linear-gradient(180deg, var(--fog) 0%, var(--chalk) 38%, #eef5f3 100%);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image:
+    linear-gradient(var(--ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ink) 1px, transparent 1px);
+  background-size: 48px 48px;
+  z-index: 0;
+}
+
+a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--ink); }
+
+img { max-width: 100%; display: block; }
+
+/* ── Shell ── */
+.site-shell { position: relative; z-index: 1; }
+
+.topnav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(14px);
+  background: rgba(244, 248, 247, 0.82);
+  border-bottom: 1px solid var(--line);
+}
+
+.topnav-inner {
+  width: min(100%, var(--max));
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.brand span { color: var(--teal); font-weight: 600; }
+
+.nav-links {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 999px;
+  transition: background 0.2s, color 0.2s;
+}
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--ink);
+  background: rgba(26, 122, 122, 0.1);
+}
+
+.menu-toggle {
+  display: none;
+  margin-left: auto;
+  border: 1px solid var(--line-strong);
+  background: white;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ── Hero ── */
+.hero {
+  width: min(100%, var(--max));
+  margin: 0 auto;
+  padding: 72px 24px 48px;
+  min-height: calc(100vh - var(--nav-h));
+  display: grid;
+  align-content: center;
+  gap: 28px;
+  position: relative;
+}
+
+.hero-mark {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  color: var(--ink);
+  max-width: 14ch;
+}
+.hero-mark em {
+  font-style: normal;
+  color: var(--teal);
+  display: block;
+}
+
+.hero-lead {
+  max-width: 38rem;
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.btn:hover { transform: translateY(-1px); }
+.btn-primary {
+  background: var(--ink);
+  color: var(--chalk);
+  box-shadow: 0 10px 24px rgba(11, 31, 42, 0.18);
+}
+.btn-primary:hover { background: var(--ink-soft); color: white; }
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.btn-ghost:hover { background: white; color: var(--ink); }
+
+.hero-visual {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-48%);
+  width: min(42%, 420px);
+  aspect-ratio: 1.15;
+  border-radius: 28px;
+  background:
+    linear-gradient(145deg, rgba(26, 122, 122, 0.2), transparent 45%),
+    linear-gradient(320deg, rgba(11, 31, 42, 0.9), #1a4a55 55%, #2aa8a0);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  isolation: isolate;
+}
+.hero-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), transparent 35%),
+    repeating-linear-gradient(
+      -18deg,
+      transparent,
+      transparent 14px,
+      rgba(255, 255, 255, 0.04) 14px,
+      rgba(255, 255, 255, 0.04) 15px
+    );
+}
+.hero-flow {
+  position: absolute;
+  inset: 18%;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  color: white;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+.hero-flow .node {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 12px 14px;
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transform: translateY(12px);
+  animation: rise-in 0.7s ease forwards;
+}
+.hero-flow .node:nth-child(2) { animation-delay: 0.15s; }
+.hero-flow .node:nth-child(3) { animation-delay: 0.3s; }
+.hero-flow .node:nth-child(4) { animation-delay: 0.45s; }
+.hero-flow .node strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+  letter-spacing: -0.02em;
+}
+
+@keyframes rise-in {
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Sections ── */
+section {
+  width: min(100%, var(--max));
+  margin: 0 auto;
+  padding: 72px 24px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--ink);
+  max-width: 18ch;
+  margin-bottom: 14px;
+}
+
+.section-lead {
+  max-width: 40rem;
+  color: var(--muted);
+  font-size: 1.08rem;
+  margin-bottom: 32px;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Concept grid ── */
+.concept-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.concept {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.concept:hover {
+  border-color: rgba(26, 122, 122, 0.45);
+  transform: translateY(-2px);
+}
+.concept h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.concept p { color: var(--muted); font-size: 0.96rem; }
+.concept code {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  background: var(--mist);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+/* ── Flow diagram ── */
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+.pipeline-step {
+  background: var(--ink);
+  color: var(--chalk);
+  border-radius: 16px;
+  padding: 18px 14px;
+  min-height: 120px;
+  position: relative;
+}
+.pipeline-step::after {
+  content: "→";
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--teal-bright);
+  font-weight: 700;
+  z-index: 2;
+}
+.pipeline-step:last-child::after { display: none; }
+.pipeline-step .n {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--seafoam);
+  margin-bottom: 8px;
+}
+.pipeline-step h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+.pipeline-step p { font-size: 0.86rem; color: rgba(247, 250, 249, 0.78); }
+
+/* ── Architecture ── */
+.arch-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.arch-table th,
+.arch-table td {
+  text-align: left;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  font-size: 0.95rem;
+}
+.arch-table th {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: rgba(232, 241, 240, 0.8);
+}
+.arch-table tr:last-child td { border-bottom: 0; }
+.arch-table code {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--teal);
+}
+
+/* ── Run paths ── */
+.path-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.path-tab {
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.path-tab.active {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+}
+.path-panel { display: none; }
+.path-panel.active { display: block; }
+
+.panel-box {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+.panel-box h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.panel-box > p { color: var(--muted); margin-bottom: 16px; }
+
+pre, .code {
+  font-family: var(--font-mono);
+  background: var(--code-bg);
+  color: var(--code-fg);
+  border-radius: 12px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  margin: 12px 0 0;
+}
+code.inline {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--mist);
+  padding: 1px 6px;
+  border-radius: 5px;
+  color: var(--ink);
+}
+
+.note {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--teal);
+  background: rgba(26, 122, 122, 0.08);
+  border-radius: 0 10px 10px 0;
+  color: var(--ink-soft);
+  font-size: 0.94rem;
+}
+
+.callout-warn {
+  border-left-color: var(--warn);
+  background: rgba(180, 83, 9, 0.08);
+}
+
+/* ── Repo map ── */
+.repo-map {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+}
+.repo-card {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+.repo-card.featured {
+  background: linear-gradient(160deg, #0f2430, #174a52);
+  color: var(--chalk);
+  border: 0;
+}
+.repo-card.featured p { color: rgba(247, 250, 249, 0.78); }
+.repo-card.featured a { color: var(--seafoam); }
+.repo-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.repo-card .tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(58, 184, 168, 0.18);
+  color: var(--seafoam);
+  margin-bottom: 12px;
+}
+.repo-card.featured .tag {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--seafoam);
+}
+.repo-list {
+  display: grid;
+  gap: 12px;
+}
+.repo-mini {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+}
+.repo-mini h4 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+.repo-mini p { color: var(--muted); font-size: 0.92rem; }
+
+/* ── Code explorer ── */
+.explorer {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 14px;
+  min-height: 420px;
+}
+.explorer-nav {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: start;
+  position: sticky;
+  top: calc(var(--nav-h) + 12px);
+}
+.explorer-nav button {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.explorer-nav button:hover,
+.explorer-nav button.active {
+  background: rgba(26, 122, 122, 0.12);
+  color: var(--ink);
+}
+.explorer-panel {
+  display: none;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.explorer-panel.active { display: block; }
+.explorer-panel h3 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.explorer-panel .file {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--teal);
+  margin-bottom: 14px;
+}
+.explorer-panel p { color: var(--muted); margin-bottom: 12px; }
+.explorer-panel ul {
+  margin: 0 0 14px 1.2rem;
+  color: var(--text);
+}
+.explorer-panel li { margin-bottom: 6px; }
+.method {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+.method:first-of-type { border-top: 0; }
+.method code {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.method p {
+  margin: 4px 0 0;
+  font-size: 0.94rem;
+}
+
+/* ── Cheat sheet ── */
+.cheat {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.cheat article {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.cheat h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+.cheat ul { margin-left: 1.1rem; color: var(--muted); }
+.cheat li { margin-bottom: 6px; }
+
+/* ── Footer ── */
+footer {
+  width: min(100%, var(--max));
+  margin: 0 auto;
+  padding: 28px 24px 60px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  justify-content: space-between;
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .hero-visual { display: none; }
+  .concept-grid { grid-template-columns: 1fr 1fr; }
+  .pipeline { grid-template-columns: 1fr 1fr; }
+  .pipeline-step::after { display: none; }
+  .repo-map { grid-template-columns: 1fr; }
+  .explorer { grid-template-columns: 1fr; }
+  .explorer-nav { position: static; flex-direction: row; flex-wrap: wrap; }
+  .cheat { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .menu-toggle { display: inline-flex; }
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: var(--nav-h);
+    left: 0;
+    right: 0;
+    background: rgba(244, 248, 247, 0.97);
+    border-bottom: 1px solid var(--line);
+    padding: 12px;
+    flex-direction: column;
+  }
+  .nav-links.open { display: flex; }
+  .concept-grid { grid-template-columns: 1fr; }
+  .pipeline { grid-template-columns: 1fr; }
+  .hero { padding-top: 48px; min-height: auto; }
+  .arch-table { display: block; overflow-x: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal, .hero-flow .node {
+    opacity: 1;
+    transform: none;
+    animation: none;
+    transition: none;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <div class="site-shell">
+    <nav class="topnav" aria-label="Primary">
+      <div class="topnav-inner">
+        <a class="brand" href="#top">Harbor <span>× Islo</span></a>
+        <button class="menu-toggle" type="button" aria-label="Open menu">Menu</button>
+        <div class="nav-links">
+          <a href="#concepts">Concepts</a>
+          <a href="#pipeline">Pipeline</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#islo-repos">Islo repos</a>
+          <a href="#run">Run on Islo</a>
+          <a href="#code">Code dive</a>
+          <a href="#cheatsheet">Cheatsheet</a>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero" id="top">
+      <h1 class="hero-mark">Harbor<em>× Islo</em></h1>
+      <p class="hero-lead">
+        Onboarding for the Harbor agent-evaluation framework, Islo’s fork that
+        branches from it, and the path to run Harbor trials inside Islo microVMs.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#run">Run Harbor on Islo</a>
+        <a class="btn btn-ghost" href="#code">Explore IsloEnvironment</a>
+        <a class="btn btn-ghost" href="https://github.com/harbor-framework/harbor" target="_blank" rel="noopener">Upstream repo</a>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="hero-flow">
+          <div class="node"><strong>Job</strong>agents × tasks × attempts</div>
+          <div class="node"><strong>Trial</strong>one sandbox attempt</div>
+          <div class="node"><strong>Islo VM</strong>gateway + nested Docker</div>
+          <div class="node"><strong>Reward</strong>verifier → trajectory</div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Concepts -->
+      <section id="concepts">
+        <p class="section-label reveal">01 · Mental model</p>
+        <h2 class="reveal">What Harbor is</h2>
+        <p class="section-lead reveal">
+          Harbor evaluates and optimizes AI agents inside isolated sandboxes.
+          You point it at a dataset (or a single task), pick an agent and model,
+          and it fans out trials — locally on Docker or on a cloud environment
+          like Islo, Daytona, or Modal.
+        </p>
+        <div class="concept-grid reveal">
+          <article class="concept">
+            <h3>Task</h3>
+            <p>One evaluation unit: <code>instruction.md</code>, <code>task.toml</code>, <code>environment/</code>, <code>tests/</code>, optional <code>solution/</code>.</p>
+          </article>
+          <article class="concept">
+            <h3>Dataset</h3>
+            <p>A named collection of tasks (e.g. <code>terminal-bench@2.0</code>) from the Harbor registry.</p>
+          </article>
+          <article class="concept">
+            <h3>Agent</h3>
+            <p>The program under test — Claude Code, Codex, OpenHands, Oracle, or a custom <code>BaseAgent</code>.</p>
+          </article>
+          <article class="concept">
+            <h3>Environment</h3>
+            <p>The sandbox provider. Docker by default; <code>--env islo</code> runs the same trial on an Islo microVM.</p>
+          </article>
+          <article class="concept">
+            <h3>Trial / Job</h3>
+            <p>A trial is one agent attempt at one task. A job is the cartesian product, run with concurrency.</p>
+          </article>
+          <article class="concept">
+            <h3>Verifier &amp; trajectory</h3>
+            <p>Tests write a reward under <code>/logs/verifier/</code>. Agents emit ATIF trajectories for debug and training.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- Pipeline -->
+      <section id="pipeline">
+        <p class="section-label reveal">02 · End-to-end</p>
+        <h2 class="reveal">How <code style="font-family:var(--font-mono);font-size:0.7em">harbor run</code> works</h2>
+        <p class="section-lead reveal">
+          CLI builds a <code class="inline">JobConfig</code>, resolves tasks and agents, then
+          queues trials. Each trial starts an environment, runs the agent, verifies, and tears down.
+        </p>
+        <div class="pipeline reveal">
+          <div class="pipeline-step">
+            <div class="n">01</div>
+            <h3>CLI</h3>
+            <p><code>harbor run</code> → <code>JobConfig</code> from flags / YAML</p>
+          </div>
+          <div class="pipeline-step">
+            <div class="n">02</div>
+            <h3>Job</h3>
+            <p>Resolve tasks, preflight env, expand trials</p>
+          </div>
+          <div class="pipeline-step">
+            <div class="n">03</div>
+            <h3>Environment</h3>
+            <p><code>start()</code> — Docker or Islo sandbox</p>
+          </div>
+          <div class="pipeline-step">
+            <div class="n">04</div>
+            <h3>Agent</h3>
+            <p><code>setup</code> + <code>run(instruction)</code></p>
+          </div>
+          <div class="pipeline-step">
+            <div class="n">05</div>
+            <h3>Verifier</h3>
+            <p>Upload tests → reward → stop env</p>
+          </div>
+        </div>
+        <div class="panel-box reveal" style="margin-top:24px">
+          <h3>Local smoke test</h3>
+          <p>Install Harbor and run a single task on Docker before switching providers.</p>
+<pre>uv tool install harbor
+# or: pip install harbor
+
+harbor run \
+  -t hello-world/hello-world \
+  -a oracle \
+  -e docker</pre>
+        </div>
+      </section>
+
+      <!-- Architecture -->
+      <section id="architecture">
+        <p class="section-label reveal">03 · Package map</p>
+        <h2 class="reveal">Harbor source layout</h2>
+        <p class="section-lead reveal">
+          Under <code class="inline">src/harbor/</code> in
+          <a href="https://github.com/harbor-framework/harbor" target="_blank" rel="noopener">harbor-framework/harbor</a>.
+          Same layout in Islo’s fork.
+        </p>
+        <div class="reveal" style="overflow-x:auto">
+          <table class="arch-table">
+            <thead>
+              <tr><th>Package</th><th>Role</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>cli/</code></td><td>Typer entrypoints. <code>harbor run</code> aliases <code>job start</code>.</td></tr>
+              <tr><td><code>job.py</code></td><td>Orchestrates the trial queue and aggregates results.</td></tr>
+              <tr><td><code>trial/</code></td><td>Lifecycle: env start → agent → artifacts → verifier → teardown.</td></tr>
+              <tr><td><code>environments/</code></td><td><code>BaseEnvironment</code>, factory registry, providers (<code>docker/</code>, <code>islo.py</code>, …).</td></tr>
+              <tr><td><code>agents/</code></td><td><code>BaseAgent</code> + built-ins (Claude Code, Terminus, Oracle, …).</td></tr>
+              <tr><td><code>verifier/</code></td><td>Uploads <code>tests/</code>, runs <code>test.sh</code>, parses reward files.</td></tr>
+              <tr><td><code>models/</code></td><td>Pydantic configs: task, trial, job, trajectories (ATIF).</td></tr>
+              <tr><td><code>tasks/</code> · <code>registry/</code></td><td>Download/cache tasks; Harbor Hub dataset registry.</td></tr>
+              <tr><td><code>viewer/</code> · <code>analyze/</code></td><td>Local results UI and LLM trajectory analysis.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note reveal" style="margin-top:18px">
+          Custom environments implement <code class="inline">BaseEnvironment</code>
+          (<code>start</code>, <code>stop</code>, <code>exec</code>, upload/download) and are selected with
+          <code class="inline">--env &lt;type&gt;</code> or <code class="inline">--env module:Class</code>.
+        </p>
+      </section>
+
+      <!-- Islo repos -->
+      <section id="islo-repos">
+        <p class="section-label reveal">04 · Islo branch</p>
+        <h2 class="reveal">Repos that branch from Harbor</h2>
+        <p class="section-lead reveal">
+          Islo contributes a first-class environment provider. Upstream Harbor already
+          ships <code class="inline">IsloEnvironment</code>; Islo also keeps a fork and a faster-moving plugin.
+        </p>
+        <div class="repo-map reveal">
+          <article class="repo-card featured">
+            <div class="tag">Primary fork</div>
+            <h3>islo-labs/harbor-fork</h3>
+            <p>
+              GitHub fork of <code>harbor-framework/harbor</code> with
+              <code>upstream</code> remotes. This is the Islo working branch of Harbor —
+              same in-tree <code>src/harbor/environments/islo.py</code>, examples, and tests.
+            </p>
+            <p style="margin-top:12px">
+              <a href="https://github.com/islo-labs/harbor-fork" target="_blank" rel="noopener">Open harbor-fork →</a>
+            </p>
+          </article>
+          <div class="repo-list">
+            <article class="repo-mini">
+              <h4>harbor-framework/harbor</h4>
+              <p>Canonical upstream. Built-in <code class="inline">EnvironmentType.ISLO</code> and <code class="inline">harbor[islo]</code> extra.</p>
+            </article>
+            <article class="repo-mini">
+              <h4>islo-labs/harbor-env</h4>
+              <p>Standalone PyPI plugin <code class="inline">harbor-islo</code>. Load via <code class="inline">import_path: harbor_islo:IsloEnvironment</code> for an independent release train.</p>
+            </article>
+            <article class="repo-mini">
+              <h4>islo-labs/harbor</h4>
+              <p>Early Islo-owned copy (not the active GitHub fork). Prefer <code class="inline">harbor-fork</code>.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Run on Islo -->
+      <section id="run">
+        <p class="section-label reveal">05 · Provider path</p>
+        <h2 class="reveal">Run Harbor in an Islo environment</h2>
+        <p class="section-lead reveal">
+          Same Harbor jobs — swap the sandbox. Authenticate with an Islo API key,
+          then select the Islo environment type (bundled) or the plugin import path.
+        </p>
+
+        <div class="path-tabs reveal" role="tablist" aria-label="Install paths">
+          <button class="path-tab active" type="button" data-path="bundled">Bundled <code>--env islo</code></button>
+          <button class="path-tab" type="button" data-path="plugin">Plugin <code>harbor-islo</code></button>
+          <button class="path-tab" type="button" data-path="policy">Network policy demo</button>
+          <button class="path-tab" type="button" data-path="gateway">Gateway kwargs</button>
+        </div>
+
+        <div class="path-panel active" data-path="bundled">
+          <div class="panel-box">
+            <h3>Recommended — Harbor with Islo extra</h3>
+            <p>Uses the in-tree provider registered as <code class="inline">type: islo</code>.</p>
+<pre>pip install 'harbor[islo]'
+# from a checkout: uv sync --extra islo
+
+export ISLO_API_KEY=...          # required (Descope key or session JWT)
+export ISLO_API_URL=https://api.islo.dev   # optional
+export ISLO_COMPUTE_URL=...      # optional compute-plane override
+export ANTHROPIC_API_KEY=...     # if your agent needs it
+
+harbor run \
+  --env islo \
+  --dataset terminal-bench@2.0 \
+  --agent claude-code \
+  --model anthropic/claude-opus-4-1 \
+  --n-concurrent 4
+
+# Pass Islo-only constructor kwargs
+harbor run --env islo \
+  --environment-kwarg delete_after_seconds=7200 \
+  --path examples/tasks/islo-network-policy-demo</pre>
+            <p class="note">
+              Default sandbox image is <code class="inline">docker.io/library/islo-runner:latest</code>.
+              Sandboxes auto-delete after 3600s unless you override <code class="inline">delete_after_seconds</code> (0 or a multiple of 60).
+            </p>
+          </div>
+        </div>
+
+        <div class="path-panel" data-path="plugin">
+          <div class="panel-box">
+            <h3>Plugin — independent Islo release train</h3>
+            <p>
+              From <a href="https://github.com/islo-labs/harbor-env" target="_blank" rel="noopener">islo-labs/harbor-env</a>.
+              Useful when Islo needs to ship environment fixes faster than Harbor releases.
+            </p>
+<pre>pip install harbor-islo   # harbor >= 0.6, Python 3.12+
+
+export ISLO_API_KEY=...
+
+harbor run \
+  --env harbor_islo:IsloEnvironment \
+  --dataset terminal-bench@2.0 \
+  --agent claude-code \
+  --model anthropic/claude-opus-4-1</pre>
+<pre># job YAML
+environment:
+  import_path: "harbor_islo:IsloEnvironment"
+  kwargs:
+    gateway_profile: "prod-apis"</pre>
+            <p class="note callout-warn">
+              The plugin currently lags upstream on portable <code class="inline">NetworkPolicy</code> → gateway
+              translation, <code class="inline">delete_after_seconds</code>, and DinD compose service ops.
+              Prefer bundled <code class="inline">--env islo</code> unless you need the plugin release train.
+            </p>
+          </div>
+        </div>
+
+        <div class="path-panel" data-path="policy">
+          <div class="panel-box">
+            <h3>Phased network policy on Islo</h3>
+            <p>
+              Harbor’s portable network policy becomes an ephemeral Islo gateway profile.
+              The demo task keeps setup/verifier on the public baseline and restricts the agent phase.
+            </p>
+<pre>cd harbor   # upstream or harbor-fork checkout
+export ISLO_API_KEY=...
+export ANTHROPIC_API_KEY=...
+
+uv run harbor run \
+  -c examples/configs/environments/islo/network-policy-demo.yaml</pre>
+<pre># examples/configs/environments/islo/network-policy-demo.yaml
+environment:
+  type: islo
+  force_build: false
+  delete: true
+  env:
+    - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+
+agents:
+  - name: claude-code
+    model_name: anthropic/claude-3-5-sonnet-20241022
+
+tasks:
+  - path: examples/tasks/islo-network-policy-demo</pre>
+            <p class="note">
+              Islo allowlists support <strong>exact hostnames only</strong> (no wildcards, IPs, or CIDRs).
+              Don’t combine <code class="inline">network_mode=allowlist|no-network</code> with a custom
+              <code class="inline">gateway</code> / <code class="inline">gateway_profile</code> — Harbor can’t verify the profile matches the policy.
+            </p>
+          </div>
+        </div>
+
+        <div class="path-panel" data-path="gateway">
+          <div class="panel-box">
+            <h3>Named profile vs inline ephemeral gateway</h3>
+            <p>Pick one — never both.</p>
+<pre># Named profile (pre-created in Islo control plane)
+environment:
+  type: islo
+  kwargs:
+    gateway_profile: "prod-apis"
+
+# OR inline rules → Harbor creates harbor-&lt;session&gt; ephemeral profile
+environment:
+  type: islo
+  kwargs:
+    gateway:
+      default_action: "deny"
+      internet_enabled: true
+      rules:
+        - host_pattern: "api.openai.com"
+          action: "allow"
+          provider_key: "openai"
+        - host_pattern: "gist.github.com"
+          action: "allow"</pre>
+            <p class="note">
+              Ephemeral profiles enable <code class="inline">dynamic_network_policy</code> (phase switches
+              during agent/verifier). Named profiles do not — Harbor won’t rewrite a shared production profile mid-trial.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Code dive -->
+      <section id="code">
+        <p class="section-label reveal">06 · Code in detail</p>
+        <h2 class="reveal">IsloEnvironment walkthrough</h2>
+        <p class="section-lead reveal">
+          Canonical implementation:
+          <code class="inline">src/harbor/environments/islo.py</code>
+          (~1300 lines) in upstream and <code class="inline">harbor-fork</code>.
+          Class: <code class="inline">IsloEnvironment(ComposeServiceOpsMixin, BaseEnvironment)</code>.
+          Longer write-ups live in <a href="docs/islo-environment.md">docs/islo-environment.md</a>.
+        </p>
+
+        <div class="explorer reveal">
+          <div class="explorer-nav" role="tablist" aria-label="Code topics">
+            <button type="button" class="active" data-topic="modes">Four start modes</button>
+            <button type="button" data-topic="lifecycle">Sandbox lifecycle</button>
+            <button type="button" data-topic="gateway">Gateway &amp; policy</button>
+            <button type="button" data-topic="exec">Exec / files</button>
+            <button type="button" data-topic="ctor">Constructor kwargs</button>
+            <button type="button" data-topic="plugin">Plugin differences</button>
+          </div>
+
+          <div class="explorer-panel active" data-topic="modes">
+            <h3>Four start modes</h3>
+            <p class="file">IsloEnvironment.start() · islo.py</p>
+            <p>
+              After <code class="inline">_setup_gateway()</code>, <code class="inline">start()</code> branches on the task’s
+              <code class="inline">environment/</code> definition:
+            </p>
+            <ul>
+              <li><strong>Compose</strong> — <code class="inline">docker-compose.yaml</code> (or <code class="inline">extra_docker_compose</code>): sandbox = <code class="inline">islo-runner</code> with Docker capability → <code class="inline">_start_compose()</code> stages Harbor compose templates into <code class="inline">/harbor/compose</code> and runs the <code class="inline">main</code> service.</li>
+              <li><strong>Prebuilt</strong> — <code class="inline">docker_image</code> set and no force-build: that image <em>is</em> the sandbox (<code class="inline">init: minimal</code>).</li>
+              <li><strong>Dockerfile</strong> — build context uploaded, <code class="inline">_build_and_run_docker()</code> creates container <code class="inline">task-env</code> via DinD.</li>
+              <li><strong>Bare</strong> — fallback plain <code class="inline">islo-runner</code> with no nested Docker.</li>
+            </ul>
+<pre>await self._create_sandbox(
+    image=_DEFAULT_IMAGE,  # or docker_image for prebuilt
+    init={"type": "custom", "capabilities": ["docker"]},  # or minimal
+    gateway_profile=gateway_profile_name,
+)
+await self._wait_for_running()  # poll get_sandbox every 2s, up to 60 tries</pre>
+          </div>
+
+          <div class="explorer-panel" data-topic="lifecycle">
+            <h3>Sandbox lifecycle</h3>
+            <p class="file">_create_sandbox · _wait_for_running · stop · attach</p>
+            <div class="method">
+              <code>_client()</code>
+              <p>Lazy <code class="inline">AsyncIslo(api_key, base_url, compute_url, timeout=120)</code>.</p>
+            </div>
+            <div class="method">
+              <code>_create_sandbox(image, init, gateway_profile)</code>
+              <p>
+                Calls <code class="inline">client.sandboxes.create_sandbox</code> with vcpus/memory_mb/disk_gb from Harbor resource config.
+                Optional lifecycle body: <code class="inline">{delete_after: N}</code>. Retries ×3 on <code class="inline">RuntimeError</code>; shields cancel so a half-created VM can still be cleaned up.
+              </p>
+            </div>
+            <div class="method">
+              <code>stop(delete)</code>
+              <p>
+                Compose down or <code class="inline">docker stop task-env</code>, then <code class="inline">_delete_sandbox</code>, finally <code class="inline">_cleanup_gateway</code> (deletes ephemeral profiles only).
+              </p>
+            </div>
+            <div class="method">
+              <code>attach()</code>
+              <p>Replaces the process with <code class="inline">islo use &lt;sandbox&gt; …</code> — compose exec into <code class="inline">main</code>, DinD into <code class="inline">task-env</code>, or bare shell.</p>
+            </div>
+          </div>
+
+          <div class="explorer-panel" data-topic="gateway">
+            <h3>Gateway &amp; network policy</h3>
+            <p class="file">GatewayConfig · _setup_gateway · _apply_network_policy</p>
+            <p>
+              Harbor’s <code class="inline">NetworkPolicy</code> maps to Islo gateway egress:
+            </p>
+            <ul>
+              <li><code class="inline">PUBLIC</code> → allow + internet</li>
+              <li><code class="inline">NO_NETWORK</code> → deny + <code class="inline">internet_enabled=False</code></li>
+              <li><code class="inline">ALLOWLIST</code> → deny + allow rules per <code class="inline">allowed_hosts</code></li>
+            </ul>
+            <div class="method">
+              <code>_setup_gateway()</code>
+              <p>
+                Named profile returned as-is. Otherwise creates ephemeral
+                <code class="inline">harbor-&lt;sanitized-session&gt;</code>, adds rules, stores profile/rule ids.
+              </p>
+            </div>
+            <div class="method">
+              <code>_apply_gateway_config(config)</code>
+              <p>
+                Updates profile, deletes old rules, recreates, sleeps 2s for propagation —
+                used when Harbor flips agent/verifier phase policies.
+              </p>
+            </div>
+<pre>capabilities.dynamic_network_policy = (
+    self._gateway_profile is None and self._gateway_config is None
+)</pre>
+          </div>
+
+          <div class="explorer-panel" data-topic="exec">
+            <h3>Exec and file transfer</h3>
+            <p class="file">exec · upload_* · download_*</p>
+            <ul>
+              <li><code class="inline">_sandbox_exec</code> — SDK <code class="inline">exec_and_wait</code> on the VM</li>
+              <li><code class="inline">_docker_exec</code> — <code class="inline">docker exec … task-env</code> via the VM</li>
+              <li><code class="inline">_compose_main_exec</code> — compose exec into <code class="inline">main</code></li>
+              <li><code class="inline">exec()</code> merges env/user, then picks compose → docker → sandbox</li>
+            </ul>
+            <p>
+              Uploads/downloads use a two-hop when the target isn’t on a bind mount:
+              SDK stage to <code class="inline">/tmp/harbor_&lt;uuid&gt;</code> on the VM, then
+              <code class="inline">docker cp</code> / compose cp into the task container.
+              Paths under mounts, <code class="inline">/tests</code>, and <code class="inline">/solution</code> go straight through the SDK.
+            </p>
+          </div>
+
+          <div class="explorer-panel" data-topic="ctor">
+            <h3>Constructor surface</h3>
+            <p class="file">IsloEnvironment.__init__</p>
+<pre>IsloEnvironment(
+    gateway_profile: str | None = None,
+    gateway: GatewayConfig | dict | None = None,  # XOR with profile
+    delete_after_seconds: int = 3600,             # 0 or % 60 == 0
+    **kwargs,  # BaseEnvironment: environment_dir, session_id,
+               # task_env_config, network_policy, mounts, …
+)</pre>
+            <ul>
+              <li>Reads <code class="inline">ISLO_API_KEY</code>, <code class="inline">ISLO_API_URL</code>, <code class="inline">ISLO_COMPUTE_URL</code></li>
+              <li>Detects compose mode <em>before</em> <code class="inline">super().__init__</code> (validation depends on it)</li>
+              <li>If no custom gateway, builds <code class="inline">_network_policy_gateway_config</code> from the task policy</li>
+              <li>Parses Dockerfile <code class="inline">WORKDIR</code> (default <code class="inline">/app</code>) when not in compose mode</li>
+            </ul>
+            <p class="note">
+              Factory registration: <code class="inline">EnvironmentType.ISLO → harbor.environments.islo:IsloEnvironment</code>
+              with pip extra <code class="inline">islo</code> (<code class="inline">islo>=0.3.3</code>, <code class="inline">dockerfile-parse</code>).
+            </p>
+          </div>
+
+          <div class="explorer-panel" data-topic="plugin">
+            <h3>harbor-env plugin differences</h3>
+            <p class="file">harbor_islo/environment.py · package harbor-islo</p>
+            <ul>
+              <li>Loaded via <code class="inline">import_path</code>, not <code class="inline">type: islo</code></li>
+              <li>No portable NetworkPolicy translation / dynamic phase updates</li>
+              <li>No <code class="inline">delete_after_seconds</code> or <code class="inline">ISLO_COMPUTE_URL</code></li>
+              <li>Still uses older <code class="inline">init_capabilities</code> + CA compose overlay for the gateway proxy</li>
+              <li>No <code class="inline">ComposeServiceOpsMixin</code> / sidecar helpers</li>
+            </ul>
+            <p>
+              Treat the plugin as a compatibility shim for faster Islo iteration;
+              read the bundled <code class="inline">islo.py</code> when learning the full feature set.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cheatsheet -->
+      <section id="cheatsheet">
+        <p class="section-label reveal">07 · Keep nearby</p>
+        <h2 class="reveal">Cheatsheet</h2>
+        <div class="cheat reveal">
+          <article>
+            <h3>CLI essentials</h3>
+            <ul>
+              <li><code class="inline">harbor run -d … -a … -m … -e islo</code></li>
+              <li><code class="inline">harbor datasets list</code></li>
+              <li><code class="inline">harbor task init</code> / <code class="inline">harbor view ./jobs</code></li>
+              <li><code class="inline">harbor agent schema &lt;name&gt;</code></li>
+              <li><code class="inline">--ek KEY=VAL</code> / <code class="inline">--environment-kwarg</code></li>
+            </ul>
+          </article>
+          <article>
+            <h3>Auth &amp; prereqs</h3>
+            <ul>
+              <li><code class="inline">ISLO_API_KEY</code> required</li>
+              <li>Optional <code class="inline">ISLO_API_URL</code> / <code class="inline">ISLO_COMPUTE_URL</code></li>
+              <li><code class="inline">islo</code> CLI on PATH for <code class="inline">attach()</code></li>
+              <li>Agent provider keys as needed</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Task layout</h3>
+            <ul>
+              <li><code class="inline">instruction.md</code> + <code class="inline">task.toml</code></li>
+              <li><code class="inline">environment/</code> Dockerfile or compose</li>
+              <li><code class="inline">tests/test.sh</code> → <code class="inline">/logs/verifier/reward.*</code></li>
+              <li>Optional <code class="inline">solution/solve.sh</code> for Oracle</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Docs &amp; deeper reading</h3>
+            <ul>
+              <li><a href="https://harborframework.com/docs">Harbor docs</a></li>
+              <li><a href="docs/harbor-overview.md">docs/harbor-overview.md</a></li>
+              <li><a href="docs/islo-environment.md">docs/islo-environment.md</a></li>
+              <li><a href="docs/run-harbor-on-islo.md">docs/run-harbor-on-islo.md</a></li>
+              <li><a href="https://github.com/harbor-framework/harbor-cookbook">Harbor Cookbook</a></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Harbor × Islo onboarding — built for internal developer ramp-up.</span>
+      <span>
+        Sources:
+        <a href="https://github.com/harbor-framework/harbor">harbor</a> ·
+        <a href="https://github.com/islo-labs/harbor-fork">harbor-fork</a> ·
+        <a href="https://github.com/islo-labs/harbor-env">harbor-env</a>
+      </span>
+    </footer>
+  </div>
+  <script>
+(() => {
+  const navLinks = document.querySelectorAll(".nav-links a");
+  const sections = [...document.querySelectorAll("main section[id]")];
+  const menuToggle = document.querySelector(".menu-toggle");
+  const nav = document.querySelector(".nav-links");
+
+  menuToggle?.addEventListener("click", () => {
+    nav?.classList.toggle("open");
+  });
+
+  navLinks.forEach((link) => {
+    link.addEventListener("click", () => nav?.classList.remove("open"));
+  });
+
+  const setActiveNav = () => {
+    const y = window.scrollY + 96;
+    let current = sections[0]?.id;
+    for (const section of sections) {
+      if (section.offsetTop <= y) current = section.id;
+    }
+    navLinks.forEach((link) => {
+      link.classList.toggle(
+        "active",
+        link.getAttribute("href") === `#${current}`
+      );
+    });
+  };
+
+  window.addEventListener("scroll", setActiveNav, { passive: true });
+  setActiveNav();
+
+  // Reveal on scroll
+  const reveals = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("in");
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+    );
+    reveals.forEach((el) => io.observe(el));
+  } else {
+    reveals.forEach((el) => el.classList.add("in"));
+  }
+
+  // Run-path tabs
+  const tabs = document.querySelectorAll(".path-tab");
+  const panels = document.querySelectorAll(".path-panel");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const id = tab.dataset.path;
+      tabs.forEach((t) => t.classList.toggle("active", t === tab));
+      panels.forEach((p) =>
+        p.classList.toggle("active", p.dataset.path === id)
+      );
+    });
+  });
+
+  // Code explorer
+  const explorerBtns = document.querySelectorAll(".explorer-nav button");
+  const explorerPanels = document.querySelectorAll(".explorer-panel");
+  explorerBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.topic;
+      explorerBtns.forEach((b) => b.classList.toggle("active", b === btn));
+      explorerPanels.forEach((p) =>
+        p.classList.toggle("active", p.dataset.topic === id)
+      );
+    });
+  });
+})();
+
+  </script>
+</body>
+</html>
