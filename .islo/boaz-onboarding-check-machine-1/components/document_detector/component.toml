@@ -1,0 +1,21 @@
+schema = 1
+mode = "passive"
+goal = "The document detector analyzes an input document and reports sentence scores and overall detection statistics."
+depends_on = []
+
+[requirements]
+capabilities = []
+vcpus = 1
+memory_mb = 1
+disk_gb = 1
+image = ""
+
+[timeouts]
+install_seconds = 1800
+build_seconds = 60
+test_seconds = 600
+start_seconds = 60
+start_verification_seconds = 60
+health_seconds = 60
+stop_seconds = 60
+status_seconds = 60
