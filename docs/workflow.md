@@ -18,10 +18,9 @@ With a validated null CSV at the configured path, the single-document interface 
 
 ```sh
 python text_detect.py -i example.txt -conf conf.yml
-python text_detect.py -i example.txt -conf conf.yml --context
 ```
 
-Use the second form only when the selected context null data matches previous-sentence scoring. Input must be a `.txt` file. The script writes `out.csv` in the working directory, prints HC and Fisher statistics, and prints edit-tag diagnostics. Those diagnostics can be undefined for untagged or zero-edit input; they are not an accuracy estimate. `out.csv` is overwritten on each invocation.
+This shows the no-context interface only. `--context` inference is blocked until the context-label masking bug is fixed and verified, even when context null data matches. Input must be a `.txt` file. The script writes `out.csv` in the working directory, prints HC and Fisher statistics, and prints edit-tag diagnostics. Those diagnostics can be undefined for untagged or zero-edit input; they are not an accuracy estimate. `out.csv` is overwritten on each invocation.
 
 For batch input, this is a synthetic JSON shape:
 
@@ -34,7 +33,7 @@ For batch input, this is a synthetic JSON shape:
 }
 ```
 
-With compatible null data, `python many_text_detect.py -i examples.json -o results.json -conf conf.yml` reads that mapping. Add `--context` only with matching previous-sentence calibration. If `-o` is omitted, the script chooses `results/results_<input-stem>.json`; the parent directory must exist. The script may prompt when the input path is not a substring of the selected null-data path. See [batch output](interfaces.md#batch-json) and its zero-discovery failure. This example specifies input format; it does not imply the sample will produce completed output.
+With compatible null data, `python many_text_detect.py -i examples.json -o results.json -conf conf.yml` reads that mapping without context. Its `--context` path is also blocked by the masking bug. If `-o` is omitted, the script chooses `results/results_<input-stem>.json`; the parent directory must exist. The script may prompt when the input path is not a substring of the selected null-data path. See [batch output](interfaces.md#batch-json) and its zero-discovery failure. This example specifies input format; it does not imply the sample will produce completed output.
 
 `generate_mixtures.py` can produce the mapping from supported dataset names (`wiki`, `wiki-long`, `news`, `news-long`). It accepts `-i`, `-o`, `-eps`, `-n`, `-no-sentences`, and `--random`. Generated entries also include `source` and `appx_no_sents`; batch detection reads `text` and `eps`.
 
@@ -43,5 +42,6 @@ With compatible null data, `python many_text_detect.py -i examples.json -o resul
 - No null CSV is checked in; `results/` is ignored. The default configuration does not establish a fresh working inference path.
 - `PrepareSentenceContext` records character counts as `length` in atomic CSV data, while `DetectLM` chooses its survival function using whitespace word counts. Resolve this mismatch or verify a compatible source before treating results as calibrated.
 - The atomic CLI cannot be presented as a fresh setup command until its fixed credential handling is replaced and verified.
+- Previous-sentence inference is blocked: `PrepareSentenceContext` passes the prior sentence as context, but `PerplexityEvaluator` defaults to `ignore_index=-1` for its context labels. The causal model loss expects `-100` for ignored labels, so a later sentence with context raises instead of producing a score. This source-level finding has not been reproduced here; fix and verify masking before using `--context` in either detector CLI.
 - A batch document with zero HC discoveries divides by zero before its result is saved, potentially leaving JSON absent or incomplete. A document with no valid scored sentences is skipped instead.
 - Model and dataset availability, runtime dependencies, and complete inference have not been verified for a clean checkout. See [setup](setup.md) and [interface details](interfaces.md).
