@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+repo_root="$(cd "$(dirname "$0")/../../../.." && pwd)"
+"/tmp/islo-boaz-onboarding-check-machine-1/perplexity_evaluator/venv/bin/python" "$repo_root/test_sentence_detector.py"

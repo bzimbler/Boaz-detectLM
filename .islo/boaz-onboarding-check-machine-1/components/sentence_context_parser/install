@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+repo_root="$(cd "$(dirname "$0")/../../../.." && pwd)"
+output_dir="/tmp/islo-boaz-onboarding-check-machine-1/sentence_context_parser"
+python_env="/tmp/islo-boaz-onboarding-check-machine-1/perplexity_evaluator/venv"
+sudo apt-get update >&2
+sudo apt-get install -y python3 python3-venv >&2
+mkdir -p "$output_dir"
+python3 -m venv "$python_env"
+"$python_env/bin/pip" install -r "$repo_root/requirements.txt" >&2
